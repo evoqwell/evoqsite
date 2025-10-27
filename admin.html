@@ -1,0 +1,305 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="robots" content="noindex, nofollow">
+    <title>EVOQ Admin Dashboard</title>
+    <link rel="stylesheet" href="/styles.css">
+    <style>
+        body {
+            background: #f5f1e9;
+            color: #2f2a25;
+        }
+        .admin-layout {
+            max-width: 1200px;
+            margin: 2rem auto;
+            padding: 0 1.5rem 4rem;
+        }
+        .admin-header {
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+            margin-bottom: 2rem;
+            border-bottom: 1px solid rgba(0,0,0,0.1);
+            padding-bottom: 1.5rem;
+        }
+        .admin-status {
+            padding: 0.75rem 1rem;
+            border-radius: 6px;
+            font-size: 0.95rem;
+            background: #e8e3dc;
+            color: #2f2a25;
+        }
+        .admin-status.error {
+            background: #ffe5e5;
+            color: #7a1313;
+        }
+        .admin-status.success {
+            background: #e0f5e5;
+            color: #1c6b34;
+        }
+        .admin-status.info {
+            background: #e5ecff;
+            color: #1f3d7a;
+        }
+        .admin-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+            gap: 1rem;
+        }
+        .admin-card {
+            background: #ffffff;
+            border-radius: 12px;
+            padding: 1.25rem;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.08);
+            border: 1px solid rgba(47,42,37,0.08);
+            margin-bottom: 1.5rem;
+        }
+        .admin-card-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: baseline;
+            gap: 0.75rem;
+            margin-bottom: 1rem;
+        }
+        .admin-card-header h3 {
+            margin: 0;
+            font-size: 1.15rem;
+        }
+        .admin-card-header time,
+        .admin-sku {
+            font-size: 0.85rem;
+            color: rgba(47,42,37,0.7);
+        }
+        .admin-card-body {
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+        }
+        .admin-card-body label {
+            display: flex;
+            flex-direction: column;
+            gap: 0.35rem;
+            font-size: 0.95rem;
+            color: rgba(47,42,37,0.85);
+        }
+        .admin-card-body input,
+        .admin-card-body textarea,
+        .admin-card-body select {
+            border-radius: 6px;
+            border: 1px solid rgba(47,42,37,0.18);
+            padding: 0.6rem 0.75rem;
+            font-size: 0.95rem;
+            background: #faf7f1;
+        }
+        .admin-card-body textarea {
+            resize: vertical;
+        }
+        .admin-card-actions {
+            display: flex;
+            justify-content: flex-end;
+            gap: 0.75rem;
+            margin-top: 1rem;
+        }
+        .admin-card-actions .btn-primary,
+        .admin-card-actions .btn-danger {
+            padding: 0.6rem 1.1rem;
+            border-radius: 6px;
+            border: none;
+            cursor: pointer;
+            font-weight: 600;
+            font-size: 0.95rem;
+        }
+        .btn-primary {
+            background: linear-gradient(135deg, #8a7d6e 0%, #6b5f52 100%);
+            color: #f5f1e9;
+        }
+        .btn-danger {
+            background: #b23a48;
+            color: #fff5f5;
+        }
+        .admin-inline {
+            flex-direction: row;
+            align-items: center;
+            gap: 0.5rem;
+        }
+        .admin-section {
+            margin-top: 2.5rem;
+        }
+        .admin-section > h2 {
+            margin-bottom: 1.5rem;
+            font-size: 1.5rem;
+        }
+        .admin-order-list {
+            margin: 0;
+            padding-left: 1.25rem;
+            list-style: disc;
+        }
+        .admin-empty {
+            padding: 1rem;
+            border-radius: 8px;
+            background: rgba(47,42,37,0.05);
+            color: rgba(47,42,37,0.7);
+        }
+        .admin-connect {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+        }
+        .admin-connect input {
+            min-width: 240px;
+            border-radius: 6px;
+            border: 1px solid rgba(47,42,37,0.2);
+            padding: 0.6rem 0.75rem;
+            font-size: 0.95rem;
+        }
+        .admin-connect button {
+            padding: 0.6rem 1rem;
+            border-radius: 6px;
+            border: none;
+            background: #2f2a25;
+            color: #f5f1e9;
+            cursor: pointer;
+            font-weight: 600;
+        }
+        .admin-create {
+            background: #ffffff;
+            border-radius: 12px;
+            padding: 1rem 1.25rem;
+            box-shadow: 0 8px 20px rgba(0,0,0,0.06);
+            border: 1px solid rgba(47,42,37,0.08);
+            margin-bottom: 2rem;
+        }
+        .admin-create form {
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+        }
+        .admin-create .form-row {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+            gap: 1rem;
+        }
+        .admin-create button {
+            align-self: flex-start;
+        }
+        @media (max-width: 640px) {
+            .admin-connect {
+                flex-direction: column;
+                align-items: stretch;
+            }
+            .admin-connect input {
+                width: 100%;
+            }
+            .admin-card-actions {
+                flex-direction: column;
+                align-items: stretch;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="admin-layout">
+        <header class="admin-header">
+            <h1>EVOQ Admin Dashboard</h1>
+            <p>Enter the admin access token to manage products, promo codes, and orders.</p>
+            <form id="admin-connect-form" class="admin-connect">
+                <input type="password" id="admin-token" placeholder="Admin access token" autocomplete="off" required>
+                <button type="submit">Connect</button>
+            </form>
+            <div id="admin-status" class="admin-status">Awaiting connection...</div>
+        </header>
+
+        <section class="admin-section">
+            <h2>Products</h2>
+            <div class="admin-create">
+                <h3>Add Product</h3>
+                <form id="admin-create-product-form">
+                    <div class="form-row">
+                        <label>
+                            SKU
+                            <input type="text" name="sku" required>
+                        </label>
+                        <label>
+                            Name
+                            <input type="text" name="name" required>
+                        </label>
+                        <label>
+                            Price (USD)
+                            <input type="number" name="price" min="0" step="0.01" required>
+                        </label>
+                        <label>
+                            Stock
+                            <input type="number" name="stock" min="0" step="1" value="0">
+                        </label>
+                    </div>
+                    <label>
+                        Description
+                        <textarea name="description" rows="2"></textarea>
+                    </label>
+                    <div class="form-row">
+                        <label>
+                            Image Path
+                            <input type="text" name="image">
+                        </label>
+                        <label>
+                            Category
+                            <input type="text" name="category">
+                        </label>
+                        <label class="admin-inline">
+                            <input type="checkbox" name="isActive" checked>
+                            Active
+                        </label>
+                    </div>
+                    <button type="submit" class="btn-primary">Create Product</button>
+                </form>
+            </div>
+            <div id="admin-products"></div>
+        </section>
+
+        <section class="admin-section">
+            <h2>Promo Codes</h2>
+            <div class="admin-create">
+                <h3>Add Promo</h3>
+                <form id="admin-create-promo-form">
+                    <div class="form-row">
+                        <label>
+                            Code
+                            <input type="text" name="code" required>
+                        </label>
+                        <label>
+                            Discount Type
+                            <select name="discountType">
+                                <option value="percentage">Percentage</option>
+                                <option value="fixed">Fixed Amount</option>
+                            </select>
+                        </label>
+                        <label>
+                            Discount Value
+                            <input type="number" name="discountValue" min="0" step="0.01" required>
+                        </label>
+                    </div>
+                    <label>
+                        Description
+                        <textarea name="description" rows="2"></textarea>
+                    </label>
+                    <label class="admin-inline">
+                        <input type="checkbox" name="isActive" checked>
+                        Active
+                    </label>
+                    <button type="submit" class="btn-primary">Create Promo</button>
+                </form>
+            </div>
+            <div id="admin-promos"></div>
+        </section>
+
+        <section class="admin-section">
+            <h2>Orders</h2>
+            <div id="admin-orders"></div>
+        </section>
+    </div>
+
+    <script type="module" src="/admin.js"></script>
+</body>
+</html>

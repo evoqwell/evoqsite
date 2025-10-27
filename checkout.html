@@ -1,0 +1,205 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <!-- Primary Meta Tags -->
+    <title>Checkout - Complete Your Research Peptide Order | EVOQ Wellness</title>
+    <meta name="title" content="Checkout - Complete Your Research Peptide Order | EVOQ Wellness">
+    <meta name="description" content="Complete your EVOQ Wellness research peptide order. Secure checkout for research-grade materials with Venmo payment processing.">
+    <meta name="keywords" content="peptide checkout, buy research peptides, order peptides, secure checkout, peptide payment">
+    <meta name="author" content="EVOQ Wellness">
+    <meta name="robots" content="noindex, nofollow">
+
+    <!-- Open Graph / Facebook -->
+    <meta property="og:type" content="website">
+    <meta property="og:url" content="https://evoqwell.netlify.app/checkout.html">
+    <meta property="og:title" content="Checkout - EVOQ Wellness">
+    <meta property="og:description" content="Complete your research peptide order with EVOQ Wellness.">
+    <meta property="og:image" content="https://evoqwell.netlify.app/Logo.PNG">
+    <meta property="og:image:width" content="1200">
+    <meta property="og:image:height" content="630">
+    <meta property="og:image:alt" content="EVOQ Wellness Logo">
+
+    <!-- Twitter -->
+    <meta property="twitter:card" content="summary_large_image">
+    <meta property="twitter:url" content="https://evoqwell.netlify.app/checkout.html">
+    <meta property="twitter:title" content="Checkout - EVOQ Wellness">
+    <meta property="twitter:description" content="Complete your research peptide order.">
+    <meta property="twitter:image" content="https://evoqwell.netlify.app/Logo.PNG">
+    <meta property="twitter:image:alt" content="EVOQ Wellness Logo">
+
+    <!-- Canonical URL -->
+    <link rel="canonical" href="https://evoqwell.netlify.app/checkout.html">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,600;1,400&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="/styles.css">
+</head>
+<body>
+    <header class="sticky-header" role="banner">
+        <nav class="container-fluid">
+            <div class="nav-content">
+                <div class="logo-section">
+                    <a href="/index.html" class="logo-link" aria-label="EVOQ Wellness Home">
+                        <div class="logo">EVOQ<img src="/lightning-bolt.svg" alt="EVOQ Lightning Bolt" class="logo-bolt"></div>
+                        <div class="slogan">metabolic wellness, evolved</div>
+                    </a>
+                </div>
+                <div class="mobile-menu-controls">
+                    <a href="/checkout.html" class="mobile-cart-icon" aria-label="View cart">
+                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <circle cx="9" cy="21" r="1"></circle>
+                            <circle cx="20" cy="21" r="1"></circle>
+                            <path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"></path>
+                        </svg>
+                        <span class="mobile-cart-badge" id="mobile-cart-count" style="display: none;">0</span>
+                    </a>
+                    <button class="mobile-menu-toggle" id="mobile-menu-toggle" aria-label="Toggle navigation menu">
+                        <span class="hamburger-icon"></span>
+                    </button>
+                </div>
+                <ul class="nav-links" id="nav-links" role="navigation">
+                    <li><a href="/index.html">Home</a></li>
+                    <li><a href="/shop.html">Products</a></li>
+                    <li><a href="/about.html">About</a></li>
+                    <li><a href="/contact.html">Contact</a></li>
+                    <li><a href="/checkout.html" class="active cart-link">Cart (<span id="cart-count">0</span>)</a></li>
+                </ul>
+            </div>
+        </nav>
+    </header>
+
+    <main>
+        <section class="hero-section checkout-hero" role="banner">
+            <div class="hero-overlay">
+                <h1 class="hero-title">Checkout<img src="/lightning-bolt.svg" alt="EVOQ Lightning Bolt" class="hero-bolt"></h1>
+            </div>
+        </section>
+
+        <div class="container content-wrapper">
+            <div class="checkout-container">
+                <div class="checkout-section cart-summary fade-in" data-aos="fade-up">
+                    <h2>Order Summary</h2>
+                    <div id="cart-items-container"></div>
+                    <div class="cart-totals">
+                        <div class="total-row">
+                            <span>Subtotal:</span>
+                            <span id="cart-subtotal">$0.00</span>
+                        </div>
+                        <div class="total-row promo-discount" id="promo-discount-row" style="display: none;">
+                            <span>Promo Code (<span id="applied-promo-code"></span>):</span>
+                            <span id="promo-discount" class="discount-amount">-$0.00</span>
+                        </div>
+                        <div class="total-row" id="shipping-row" style="display: none;">
+                            <span>Shipping:</span>
+                            <span id="cart-shipping">$10.00</span>
+                        </div>
+                        <div class="total-row total-final">
+                            <span>Total:</span>
+                            <span id="cart-total">$0.00</span>
+                        </div>
+                    </div>
+                    <button id="clear-cart" class="btn-secondary">Clear Cart</button>
+                </div>
+
+                <div class="checkout-section shipping-form fade-in" data-aos="fade-up">
+                    <h2>Shipping Information</h2>
+                    <form id="checkout-form" novalidate>
+                        <div class="form-group">
+                            <label for="shipping-name">Full Name *</label>
+                            <input type="text" id="shipping-name" name="name" class="form-control" required aria-required="true">
+                            <div class="invalid-feedback">Please enter your full name.</div>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="shipping-email">Email *</label>
+                            <input type="email" id="shipping-email" name="email" class="form-control" required aria-required="true">
+                            <div class="invalid-feedback">Please enter a valid email address.</div>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="shipping-address">Street Address *</label>
+                            <input type="text" id="shipping-address" name="address" class="form-control" required aria-required="true">
+                            <div class="invalid-feedback">Please enter your street address.</div>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="shipping-city">City *</label>
+                            <input type="text" id="shipping-city" name="city" class="form-control" required aria-required="true">
+                            <div class="invalid-feedback">Please enter your city.</div>
+                        </div>
+
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label for="shipping-state">State *</label>
+                                <input type="text" id="shipping-state" name="state" class="form-control" required aria-required="true">
+                                <div class="invalid-feedback">Please enter your state.</div>
+                            </div>
+
+                            <div class="form-group">
+                                <label for="shipping-zip">ZIP Code *</label>
+                                <input type="text" id="shipping-zip" name="zip" class="form-control" required aria-required="true" pattern="[0-9]{5}">
+                                <div class="invalid-feedback">Please enter a valid ZIP code.</div>
+                            </div>
+                        </div>
+
+                        <div class="form-group promo-code-section">
+                            <label for="promo-code">Promo Code (Optional)</label>
+                            <div class="promo-code-input-group">
+                                <input type="text" id="promo-code" name="promoCode" class="form-control" placeholder="Enter promo code">
+                                <button type="button" id="apply-promo" class="btn-apply-promo">Apply</button>
+                            </div>
+                            <div id="promo-message" class="promo-message" role="alert"></div>
+                        </div>
+
+                        <div class="compliance-note">
+                            <p><strong>Important:</strong> By submitting this order, you acknowledge that all products are supplied strictly for lawful research purposes and agree to the terms outlined in our disclaimer.</p>
+                        </div>
+
+                        <button type="submit" class="btn-primary" id="submit-order">Place Order</button>
+
+                        <div class="payment-note">
+                            <p>After submitting your order, you will receive payment instructions via email. We accept payment via Venmo.</p>
+                            <p><strong>Heads up:</strong> If you do not receive a confirmation email, kindly check your junk or spam folder.</p>
+                        </div>
+                    </form>
+
+                    <div id="checkout-response" class="form-response" role="alert" aria-live="polite"></div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!-- Order Confirmation Modal -->
+    <div class="modal fade" id="orderConfirmationModal" tabindex="-1" aria-labelledby="orderConfirmationModalLabel" aria-hidden="true" data-bs-backdrop="static" data-bs-keyboard="false">
+        <div class="modal-dialog modal-dialog-centered modal-lg">
+            <div class="modal-content" style="border: none; border-radius: 16px; overflow: hidden; box-shadow: 0 20px 60px rgba(0,0,0,0.3);">
+                <div class="modal-header" style="background: linear-gradient(135deg, #8A7D6E 0%, #6B5F52 100%); color: #F5F1E9; border-bottom: none; padding: 24px 32px;">
+                    <div>
+                        <h4 class="modal-title mb-1" id="orderConfirmationModalLabel" style="font-weight: 600; font-size: 1.5rem;">Order Placed Successfully!</h4>
+                        <p style="margin: 0; opacity: 0.95; font-size: 0.95rem;">Thank you for your order</p>
+                    </div>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close" style="filter: brightness(0) invert(1);"></button>
+                </div>
+                <div class="modal-body" id="orderConfirmationContent" style="padding: 32px; background: #F5F1E9;">
+                    <!-- Content will be inserted by JavaScript -->
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <footer role="contentinfo">
+        <div class="container">
+            <p class="disclaimer">By completing a purchase from EVOQ, the buyer acknowledges that all products are supplied strictly for lawful research purposes. These materials are not manufactured, packaged, or approved for human or animal ingestion, medical treatment, or diagnostic procedures of any kind. The buyer accepts sole responsibility for the handling, storage, use, and distribution of all products. EVOQ assumes no liability and shall be indemnified and held harmless against any and all claims, damages, or losses arising from misuse, unauthorized application, or noncompliance with relevant laws and regulations.</p>
+        </div>
+    </footer>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script type="module" src="/lib/age-gate.js"></script>
+    <script type="module" src="/script.js"></script>
+    <script type="module" src="/checkout.js"></script>
+</body>
+</html>

@@ -1,0 +1,927 @@
+/**
+ * EVOQ WELLNESS - MAIN JAVASCRIPT
+ * Handles cart functionality, form validation, animations, and EmailJS integration
+ */
+
+console.log('EVOQ script.js loaded');
+
+// ============================================
+// CART MANAGEMENT
+// ============================================
+
+// Initialize EmailJS with public key
+if (typeof emailjs !== 'undefined') {
+  emailjs.init('x-F-AEMjGhh61DlcQ');
+}
+
+// Initialize cart from localStorage or create empty cart
+// Compatible with old keys and migrates to 'evoq_cart'
+function getCart() {
+  let cart = localStorage.getItem('evoq_cart');
+  if (!cart) {
+    // Check old keys and migrate
+    cart = localStorage.getItem('evoqCart') || localStorage.getItem('evoq-cart');
+    if (cart) {
+      localStorage.setItem('evoq_cart', cart);
+      localStorage.removeItem('evoqCart');
+      localStorage.removeItem('evoq-cart');
+    }
+  }
+  return cart ? JSON.parse(cart) : [];
+}
+
+// Save cart to localStorage
+function saveCart(cart) {
+  localStorage.setItem('evoq_cart', JSON.stringify(cart));
+  updateCartCount();
+}
+
+// Update cart count in header
+function updateCartCount() {
+  const cart = getCart();
+  const cartCount = cart.reduce((total, item) => total + item.quantity, 0);
+
+  const cartCountElements = document.querySelectorAll('#cart-count');
+  cartCountElements.forEach(element => {
+    element.textContent = cartCount;
+  });
+
+  const mobileCartCountElements = document.querySelectorAll('#mobile-cart-count');
+  mobileCartCountElements.forEach(element => {
+    element.textContent = cartCount;
+    element.style.display = cartCount > 0 ? 'block' : 'none';
+  });
+}
+
+// Add item to cart
+function addToCart(productId, productName, productPrice) {
+  const cart = getCart();
+  const existingItem = cart.find(item => item.id === productId);
+
+  if (existingItem) {
+    existingItem.quantity += 1;
+  } else {
+    cart.push({
+      id: productId,
+      name: productName,
+      price: parseFloat(productPrice),
+      quantity: 1
+    });
+  }
+
+  saveCart(cart);
+  showNotification(`${productName} added to cart!`);
+}
+
+// Remove item from cart
+function removeFromCart(productId) {
+  let cart = getCart();
+  cart = cart.filter(item => item.id !== productId);
+  saveCart(cart);
+
+  // Reload cart display if on checkout page
+  if (document.getElementById('cart-items-container')) {
+    displayCartItems();
+  }
+}
+
+// Update item quantity in cart
+function updateQuantity(productId, change) {
+  const cart = getCart();
+  const item = cart.find(item => item.id === productId);
+
+  if (item) {
+    item.quantity += change;
+    if (item.quantity <= 0) {
+      removeFromCart(productId);
+    } else {
+      saveCart(cart);
+      displayCartItems();
+    }
+  }
+}
+
+// Clear entire cart
+function clearCart() {
+  localStorage.removeItem('evoqCart');
+  localStorage.removeItem('evoq-cart');
+  appliedPromoCode = null;
+  updateCartCount();
+  if (document.getElementById('cart-items-container')) {
+    displayCartItems();
+  }
+  // Clear promo code input and message
+  const promoInput = document.getElementById('promo-code');
+  const promoMessage = document.getElementById('promo-message');
+  if (promoInput) promoInput.value = '';
+  if (promoMessage) {
+    promoMessage.textContent = '';
+    promoMessage.className = 'promo-message';
+  }
+  showNotification('Cart cleared successfully');
+}
+
+// Global variable to store applied promo code
+let appliedPromoCode = null;
+
+// Display cart items on checkout page
+function displayCartItems() {
+  const cartContainer = document.getElementById('cart-items-container');
+  const subtotalElement = document.getElementById('cart-subtotal');
+  const shippingElement = document.getElementById('cart-shipping');
+  const totalElement = document.getElementById('cart-total');
+  const promoDiscountRow = document.getElementById('promo-discount-row');
+  const promoDiscountElement = document.getElementById('promo-discount');
+  const shippingRow = document.getElementById('shipping-row');
+
+  if (!cartContainer) return;
+
+  const cart = getCart();
+
+  if (cart.length === 0) {
+    cartContainer.innerHTML = `
+      <div class="empty-cart-message">
+        <h3>Your cart is empty</h3>
+        <p>Add some research peptides to get started!</p>
+        <a href="shop.html" class="btn-primary" style="margin-top: 1rem;">Browse Products</a>
+      </div>
+    `;
+    subtotalElement.textContent = '$0.00';
+    shippingElement.textContent = '$0.00';
+    totalElement.textContent = '$0.00';
+    if (shippingRow) shippingRow.style.display = 'none';
+    if (promoDiscountRow) promoDiscountRow.style.display = 'none';
+    return;
+  }
+
+  let subtotal = 0;
+  let cartHTML = '';
+
+  cart.forEach(item => {
+    const itemTotal = item.price * item.quantity;
+    subtotal += itemTotal;
+
+    cartHTML += `
+      <div class="cart-item">
+        <div class="cart-item-info">
+          <h4>${item.name}</h4>
+          <p>Quantity: ${item.quantity} × $${item.price.toFixed(2)}</p>
+        </div>
+        <div style="display: flex; align-items: center; gap: 1rem;">
+          <span class="cart-item-price">$${itemTotal.toFixed(2)}</span>
+          <button class="remove-item" onclick="removeFromCart('${item.id}')" aria-label="Remove ${item.name} from cart">×</button>
+        </div>
+      </div>
+    `;
+  });
+
+  cartContainer.innerHTML = cartHTML;
+
+  // Only add shipping if cart has items
+  const shipping = cart.length > 0 ? 10.00 : 0.00;
+  let discount = 0;
+
+  if (appliedPromoCode) {
+    if (appliedPromoCode.discount_type === 'percentage') {
+      discount = subtotal * (appliedPromoCode.discount_value / 100);
+    } else if (appliedPromoCode.discount_type === 'fixed') {
+      discount = Math.min(appliedPromoCode.discount_value, subtotal);
+    }
+  }
+
+  const total = subtotal - discount + shipping;
+
+  subtotalElement.textContent = `$${subtotal.toFixed(2)}`;
+
+  // Show shipping row only when cart has items
+  if (shippingRow) {
+    shippingRow.style.display = 'flex';
+  }
+  shippingElement.textContent = `$${shipping.toFixed(2)}`;
+  totalElement.textContent = `$${total.toFixed(2)}`;
+
+  if (discount > 0 && promoDiscountRow && promoDiscountElement) {
+    promoDiscountRow.style.display = 'flex';
+    promoDiscountElement.textContent = `-$${discount.toFixed(2)}`;
+    document.getElementById('applied-promo-code').textContent = appliedPromoCode.code;
+  } else if (promoDiscountRow) {
+    promoDiscountRow.style.display = 'none';
+  }
+}
+
+// Show notification banner
+function showNotification(message) {
+  const notification = document.createElement('div');
+  notification.className = 'notification';
+  notification.textContent = message;
+  notification.style.cssText = `
+    position: fixed;
+    top: 100px;
+    right: 20px;
+    background-color: #8A7D6E;
+    color: #F5F1E9;
+    padding: 1rem 2rem;
+    border-radius: 4px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+    z-index: 10000;
+    animation: slideIn 0.3s ease;
+    font-family: Arial, sans-serif;
+  `;
+
+  document.body.appendChild(notification);
+
+  setTimeout(() => {
+    notification.style.animation = 'slideOut 0.3s ease';
+    setTimeout(() => notification.remove(), 300);
+  }, 3000);
+}
+
+// Add CSS animations for notifications
+const style = document.createElement('style');
+style.textContent = `
+  @keyframes slideIn {
+    from {
+      transform: translateX(400px);
+      opacity: 0;
+    }
+    to {
+      transform: translateX(0);
+      opacity: 1;
+    }
+  }
+  @keyframes slideOut {
+    from {
+      transform: translateX(0);
+      opacity: 1;
+    }
+    to {
+      transform: translateX(400px);
+      opacity: 0;
+    }
+  }
+`;
+document.head.appendChild(style);
+
+// ============================================
+// FORM VALIDATION
+// ============================================
+
+// Validate email format
+function isValidEmail(email) {
+  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+  return emailRegex.test(email);
+}
+
+// Show form error
+function showError(input, message) {
+  input.classList.add('is-invalid');
+  const feedback = input.nextElementSibling;
+  if (feedback && feedback.classList.contains('invalid-feedback')) {
+    feedback.textContent = message;
+  }
+}
+
+// Clear form error
+function clearError(input) {
+  input.classList.remove('is-invalid');
+}
+
+// Validate contact form
+function validateContactForm(form) {
+  let isValid = true;
+
+  const name = form.querySelector('#contact-name');
+  const email = form.querySelector('#contact-email');
+  const message = form.querySelector('#contact-message');
+
+  // Clear previous errors
+  [name, email, message].forEach(input => clearError(input));
+
+  // Validate name
+  if (!name.value.trim()) {
+    showError(name, 'Please enter your name');
+    isValid = false;
+  }
+
+  // Validate email
+  if (!email.value.trim()) {
+    showError(email, 'Please enter your email address');
+    isValid = false;
+  } else if (!isValidEmail(email.value)) {
+    showError(email, 'Please enter a valid email address');
+    isValid = false;
+  }
+
+  // Validate message
+  if (!message.value.trim()) {
+    showError(message, 'Please enter your message');
+    isValid = false;
+  }
+
+  return isValid;
+}
+
+// Validate checkout form
+function validateCheckoutForm(form) {
+  let isValid = true;
+
+  const name = form.querySelector('#shipping-name');
+  const email = form.querySelector('#shipping-email');
+  const address = form.querySelector('#shipping-address');
+  const city = form.querySelector('#shipping-city');
+  const state = form.querySelector('#shipping-state');
+  const zip = form.querySelector('#shipping-zip');
+
+  // Clear previous errors
+  [name, email, address, city, state, zip].forEach(input => clearError(input));
+
+  // Validate name
+  if (!name.value.trim()) {
+    showError(name, 'Please enter your full name');
+    isValid = false;
+  }
+
+  // Validate email
+  if (!email.value.trim()) {
+    showError(email, 'Please enter your email address');
+    isValid = false;
+  } else if (!isValidEmail(email.value)) {
+    showError(email, 'Please enter a valid email address');
+    isValid = false;
+  }
+
+  // Validate address
+  if (!address.value.trim()) {
+    showError(address, 'Please enter your street address');
+    isValid = false;
+  }
+
+  // Validate city
+  if (!city.value.trim()) {
+    showError(city, 'Please enter your city');
+    isValid = false;
+  }
+
+  // Validate state
+  if (!state.value.trim()) {
+    showError(state, 'Please enter your state');
+    isValid = false;
+  }
+
+  // Validate ZIP code
+  const zipRegex = /^\d{5}$/;
+  if (!zip.value.trim()) {
+    showError(zip, 'Please enter your ZIP code');
+    isValid = false;
+  } else if (!zipRegex.test(zip.value)) {
+    showError(zip, 'Please enter a valid 5-digit ZIP code');
+    isValid = false;
+  }
+
+  return isValid;
+}
+
+// ============================================
+// CONTACT FORM HANDLER
+// ============================================
+
+function handleContactForm(e) {
+  e.preventDefault();
+
+  const form = e.target;
+  const responseDiv = document.getElementById('form-response');
+
+  if (!validateContactForm(form)) {
+    return;
+  }
+
+  const name = form.querySelector('#contact-name').value;
+  const email = form.querySelector('#contact-email').value;
+  const message = form.querySelector('#contact-message').value;
+
+  // Show success message
+  responseDiv.className = 'form-response success';
+  responseDiv.textContent = `Thank you, ${name}! We've received your message and will get back to you at ${email} shortly. We appreciate you reaching out.`;
+  responseDiv.style.display = 'block';
+
+  // Clear form
+  form.reset();
+
+  // Scroll to response
+  responseDiv.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+}
+
+// ============================================
+// ORDER CONFIRMATION MODAL
+// ============================================
+
+function showOrderConfirmationModal(orderData) {
+  const discountHTML = orderData.discount && orderData.discount > 0 ? `
+    <div class="order-detail">
+      <span class="detail-label">Promo Code (${orderData.promoCode}):</span>
+      <span class="detail-value discount-value">-$${orderData.discount.toFixed(2)}</span>
+    </div>
+  ` : '';
+
+  const modalHTML = `
+    <div class="order-confirmation-overlay" id="order-confirmation">
+      <div class="order-confirmation-modal">
+        <div class="success-icon">✓</div>
+        <h2>Order Confirmed!</h2>
+        <p class="info-text">Thank you, <strong>${orderData.name}</strong>! Your order has been successfully placed.</p>
+
+        <div class="order-summary">
+          <div class="order-detail">
+            <span class="detail-label">Order Number:</span>
+            <span class="detail-value"><strong>${orderData.orderNumber}</strong></span>
+          </div>
+          <div class="order-detail">
+            <span class="detail-label">Email:</span>
+            <span class="detail-value">${orderData.email}</span>
+          </div>
+          <div class="order-detail">
+            <span class="detail-label">Items:</span>
+            <span class="detail-value">${orderData.itemCount} item(s)</span>
+          </div>
+          <div class="order-detail">
+            <span class="detail-label">Subtotal:</span>
+            <span class="detail-value">$${orderData.subtotal.toFixed(2)}</span>
+          </div>
+          ${discountHTML}
+          <div class="order-detail">
+            <span class="detail-label">Shipping:</span>
+            <span class="detail-value">$${orderData.shipping.toFixed(2)}</span>
+          </div>
+          <div class="order-detail">
+            <span class="detail-label">Total:</span>
+            <span class="detail-value">$${orderData.total.toFixed(2)}</span>
+          </div>
+        </div>
+
+        <div class="payment-section">
+          <h3>Complete Your Payment</h3>
+          <p class="info-text">To finalize your order, please complete payment via Venmo.</p>
+          <a href="${orderData.venmoUrl}" target="_blank" class="venmo-button">Pay with Venmo</a>
+          <p class="info-text" style="font-size: 0.85rem; margin-top: 1rem;">Your order will be processed once payment is received.</p>
+        </div>
+
+        <p class="info-text">A confirmation email has been sent to <strong>${orderData.email}</strong>. Please check your spam folder if you don't see it.</p>
+
+        <button class="close-button" onclick="closeOrderConfirmation()">Close</button>
+      </div>
+    </div>
+  `;
+
+  document.body.insertAdjacentHTML('beforeend', modalHTML);
+  setTimeout(() => {
+    document.getElementById('order-confirmation').classList.add('show');
+  }, 100);
+}
+
+function closeOrderConfirmation() {
+  const modal = document.getElementById('order-confirmation');
+  if (modal) {
+    modal.classList.remove('show');
+    setTimeout(() => modal.remove(), 300);
+  }
+}
+
+// Export functions to global window object for inline onclick handlers
+window.closeOrderConfirmation = closeOrderConfirmation;
+window.removeFromCart = removeFromCart;
+window.updateQuantity = updateQuantity;
+
+// ============================================
+// CHECKOUT FORM HANDLER WITH EMAILJS
+// ============================================
+
+// Generate order number
+function generateOrderNumber() {
+  const date = new Date().toISOString().slice(0, 10).replace(/-/g, '');
+  const random = Math.floor(Math.random() * 1000).toString().padStart(3, '0');
+  return `EVOQ-${date}-${random}`;
+}
+
+async function handleCheckoutForm(e) {
+  e.preventDefault();
+
+  const form = e.target;
+  const responseDiv = document.getElementById('checkout-response');
+  const submitButton = document.getElementById('submit-order');
+
+  if (!validateCheckoutForm(form)) {
+    return;
+  }
+
+  const cart = getCart();
+  if (cart.length === 0) {
+    responseDiv.className = 'form-response error';
+    responseDiv.textContent = 'Your cart is empty. Please add items before checking out.';
+    responseDiv.style.display = 'block';
+    return;
+  }
+
+  // Disable submit button
+  submitButton.disabled = true;
+  submitButton.textContent = 'Processing...';
+
+  // Prepare order data
+  const name = form.querySelector('#shipping-name').value.trim();
+  const email = form.querySelector('#shipping-email').value.trim();
+  const address = form.querySelector('#shipping-address').value.trim();
+  const city = form.querySelector('#shipping-city').value.trim();
+  const state = form.querySelector('#shipping-state').value.trim();
+  const zip = form.querySelector('#shipping-zip').value.trim();
+
+  const fullAddress = `${address}, ${city}, ${state} ${zip}`;
+
+  const subtotal = cart.reduce((sum, item) => sum + (item.price * item.quantity), 0);
+  const shipping = 10.00;
+  let discount = 0;
+
+  if (appliedPromoCode) {
+    if (appliedPromoCode.discount_type === 'percentage') {
+      discount = subtotal * (appliedPromoCode.discount_value / 100);
+    } else if (appliedPromoCode.discount_type === 'fixed') {
+      discount = Math.min(appliedPromoCode.discount_value, subtotal);
+    }
+  }
+
+  const total = subtotal - discount + shipping;
+
+  const orderNumber = generateOrderNumber();
+  const cartItems = cart.map(item => `${item.name} (x${item.quantity}) - $${(item.price * item.quantity).toFixed(2)}`).join('\n');
+  const venmoUrl = `https://venmo.com/EVOQWELL?txn=pay&amount=${total.toFixed(2)}&note=${encodeURIComponent(orderNumber)}`;
+
+  try {
+    // Save order to database
+    if (typeof window.saveOrderToDatabase === 'function') {
+      const orderData = {
+        cart: cart,
+        name: name,
+        email: email,
+        phone: null,
+        address: address,
+        city: city,
+        state: state,
+        zip: zip,
+        promoCode: appliedPromoCode ? appliedPromoCode.code : null,
+        promoCodeData: appliedPromoCode
+      };
+
+      const dbResult = await window.saveOrderToDatabase(orderData);
+
+      if (dbResult.success) {
+        console.log('Order saved to database:', dbResult.orderNumber);
+      } else {
+        console.error('Failed to save order to database:', dbResult.error);
+      }
+    }
+
+    // Send email to buyer with payment instructions
+    const buyerParams = {
+      to_email: email,
+      reply_to: email,
+      order_number: orderNumber,
+      customer_name: name,
+      items: cartItems,
+      subtotal: `$${subtotal.toFixed(2)}`,
+      discount: discount > 0 ? `$${discount.toFixed(2)}` : null,
+      promo_code: appliedPromoCode ? appliedPromoCode.code : null,
+      shipping: `$${shipping.toFixed(2)}`,
+      total: `$${total.toFixed(2)}`,
+      venmo_link: venmoUrl,
+      fulfillment: 'We\'ll carefully prepare and ship your order within 2-3 business days after payment confirmation. If you have any questions, we\'re here to help!',
+      thank_you_message: 'Thank you for choosing EVOQ for your research needs. We appreciate your trust in us and look forward to supporting your scientific work.'
+    };
+    await emailjs.send('service_hf61b9s', 'template_e3wgwos', buyerParams);
+
+    // Send email to seller with order details
+    const sellerParams = {
+      order_number: orderNumber,
+      items: cartItems,
+      subtotal: `$${subtotal.toFixed(2)}`,
+      discount: discount > 0 ? `$${discount.toFixed(2)}` : 'N/A',
+      promo_code: appliedPromoCode ? appliedPromoCode.code : 'N/A',
+      shipping: `$${shipping.toFixed(2)}`,
+      total: `$${total.toFixed(2)}`,
+      name: name,
+      address: fullAddress,
+      email: email
+    };
+    await emailjs.send('service_hf61b9s', 'template_ewj2a9v', sellerParams);
+
+    // Clear cart and form
+    localStorage.removeItem('evoqCart');
+    localStorage.removeItem('evoq-cart');
+    updateCartCount();
+    form.reset();
+    displayCartItems();
+
+    // Show order confirmation modal
+    showOrderConfirmationModal({
+      name: name,
+      email: email,
+      orderNumber: orderNumber,
+      itemCount: cart.length,
+      subtotal: subtotal,
+      discount: discount,
+      promoCode: appliedPromoCode ? appliedPromoCode.code : null,
+      shipping: shipping,
+      total: total,
+      venmoUrl: venmoUrl
+    });
+
+    // Reset promo code after successful order
+    appliedPromoCode = null;
+  } catch (error) {
+    console.error('Error sending emails:', error);
+    alert('There was an error processing your order. Please try again or contact support.');
+  } finally {
+    submitButton.disabled = false;
+    submitButton.textContent = 'Place Order';
+  }
+}
+
+// ============================================
+// SCROLL ANIMATIONS
+// ============================================
+
+function handleScrollAnimations() {
+  // Fade-in animations are handled by CSS
+  // This function is kept for future enhancements
+}
+
+// ============================================
+// AGE VERIFICATION
+// ============================================
+// Age verification is now handled by lib/age-gate.js
+// This section kept for reference only
+
+// ============================================
+// PROMO CODE HANDLING
+// ============================================
+
+async function handleApplyPromo() {
+  console.log('Apply promo button clicked');
+  const promoInput = document.getElementById('promo-code');
+  const promoMessage = document.getElementById('promo-message');
+  const applyButton = document.getElementById('apply-promo');
+
+  if (!promoInput || !promoMessage) {
+    console.error('Promo input or message element not found');
+    return;
+  }
+
+  const code = promoInput.value.trim().toUpperCase();
+  promoInput.value = code;
+
+  if (!code) {
+    promoMessage.className = 'promo-message error';
+    promoMessage.textContent = 'Please enter a promo code';
+    return;
+  }
+
+  if (applyButton) {
+    applyButton.disabled = true;
+    applyButton.textContent = 'Validating...';
+  }
+  promoMessage.className = 'promo-message';
+  promoMessage.textContent = '';
+
+  try {
+    if (!window.validatePromoCode) {
+      console.error('validatePromoCode function not available');
+      throw new Error('Promo code validation not available');
+    }
+
+    console.log('Validating promo code:', code);
+    const result = await window.validatePromoCode(code);
+    console.log('Validation result:', result);
+
+    if (result.valid) {
+      appliedPromoCode = result.promoCode;
+      promoMessage.className = 'promo-message success';
+      promoMessage.textContent = result.message;
+      promoInput.disabled = true;
+      if (applyButton) applyButton.textContent = 'Applied';
+      displayCartItems();
+    } else {
+      appliedPromoCode = null;
+      promoMessage.className = 'promo-message error';
+      promoMessage.textContent = result.message;
+      if (applyButton) applyButton.textContent = 'Apply';
+      displayCartItems();
+    }
+  } catch (error) {
+    console.error('Error validating promo code:', error);
+    promoMessage.className = 'promo-message error';
+    promoMessage.textContent = 'Error validating promo code. Please try again.';
+    if (applyButton) applyButton.textContent = 'Apply';
+  } finally {
+    if (applyButton) applyButton.disabled = false;
+  }
+}
+
+// ============================================
+// MOBILE MENU TOGGLE - REVAMPED
+// ============================================
+
+function initMobileMenu() {
+  const menuToggle = document.getElementById('mobile-menu-toggle');
+  const navLinks = document.getElementById('nav-links');
+
+  if (!menuToggle || !navLinks) {
+    console.warn('Mobile menu elements not found');
+    return;
+  }
+
+  console.log('Mobile menu initialized');
+
+  // Toggle menu function
+  function toggleMenu(e) {
+    e.preventDefault();
+    e.stopPropagation();
+
+    const isActive = navLinks.classList.contains('active');
+
+    if (isActive) {
+      closeMenu();
+    } else {
+      openMenu();
+    }
+  }
+
+  function openMenu() {
+    menuToggle.classList.add('active');
+    navLinks.classList.add('active');
+    document.body.classList.add('menu-open');
+    console.log('Menu opened');
+  }
+
+  function closeMenu() {
+    menuToggle.classList.remove('active');
+    navLinks.classList.remove('active');
+    document.body.classList.remove('menu-open');
+    console.log('Menu closed');
+  }
+
+  // Hamburger toggle - works on both click and touch
+  menuToggle.addEventListener('click', (e) => {
+    console.log('Hamburger click fired');
+    toggleMenu(e);
+  });
+  menuToggle.addEventListener('touchend', (e) => {
+    console.log('Hamburger touchend fired');
+    e.preventDefault();
+    toggleMenu(e);
+  }, { passive: false });
+
+  // Navigation links - close menu on click and allow navigation
+  navLinks.querySelectorAll('a').forEach(link => {
+    link.addEventListener('click', (e) => {
+      // Allow the link to navigate
+      console.log('Link clicked:', link.href);
+      closeMenu();
+    });
+  });
+
+  // Close menu when clicking outside
+  document.addEventListener('click', (e) => {
+    if (navLinks.classList.contains('active')) {
+      if (!navLinks.contains(e.target) && !menuToggle.contains(e.target)) {
+        closeMenu();
+      }
+    }
+  });
+
+  // Prevent body scroll when menu is open
+  const style = document.createElement('style');
+  style.textContent = `
+    body.menu-open {
+      overflow: hidden;
+      position: fixed;
+      width: 100%;
+    }
+  `;
+  document.head.appendChild(style);
+}
+
+// ============================================
+// INITIALIZATION
+// ============================================
+
+export function initializeApp() {
+  console.log('DOMContentLoaded fired');
+
+  // Initialize mobile menu
+  initMobileMenu();
+
+  // Update cart count on page load
+  updateCartCount();
+
+  // Handle scroll animations
+  handleScrollAnimations();
+
+  // Add to cart buttons on shop page
+  const addToCartButtons = document.querySelectorAll('.btn-add-cart');
+  addToCartButtons.forEach(button => {
+    function handleAddToCart(e) {
+      e.preventDefault();
+      e.stopPropagation();
+      const productId = this.dataset.productId;
+      const productName = this.dataset.productName;
+      const productPrice = this.dataset.productPrice;
+      addToCart(productId, productName, productPrice);
+    }
+    button.addEventListener('click', handleAddToCart);
+    button.addEventListener('touchend', handleAddToCart, { passive: false });
+  });
+
+  // Contact form submission
+  const contactForm = document.getElementById('contact-form');
+  if (contactForm) {
+    contactForm.addEventListener('submit', handleContactForm);
+  }
+
+  // Checkout form submission
+  const checkoutForm = document.getElementById('checkout-form');
+  if (checkoutForm) {
+    checkoutForm.addEventListener('submit', handleCheckoutForm);
+  }
+
+  // Display cart items on checkout page
+  if (document.getElementById('cart-items-container')) {
+    displayCartItems();
+  }
+
+  // Clear cart button
+  const clearCartButton = document.getElementById('clear-cart');
+  if (clearCartButton) {
+    clearCartButton.addEventListener('click', clearCart);
+  }
+
+  // Promo code application
+  const applyPromoButton = document.getElementById('apply-promo');
+  if (applyPromoButton) {
+    console.log('Promo button found, attaching handlers');
+    applyPromoButton.addEventListener('click', handleApplyPromo);
+    applyPromoButton.addEventListener('touchend', (e) => {
+      console.log('Promo touchend fired');
+      e.preventDefault();
+      handleApplyPromo();
+    }, { passive: false });
+  } else {
+    console.log('Promo button NOT found on this page');
+  }
+
+  // Allow Enter key to apply promo code and convert to uppercase
+  const promoCodeInput = document.getElementById('promo-code');
+  if (promoCodeInput) {
+    promoCodeInput.addEventListener('keypress', function(e) {
+      if (e.key === 'Enter') {
+        e.preventDefault();
+        handleApplyPromo();
+      }
+    });
+
+    // Convert to uppercase as user types
+    promoCodeInput.addEventListener('input', function(e) {
+      const start = this.selectionStart;
+      const end = this.selectionEnd;
+      this.value = this.value.toUpperCase();
+      this.setSelectionRange(start, end);
+    });
+  }
+
+  // Real-time form validation
+  const formInputs = document.querySelectorAll('.form-control');
+  formInputs.forEach(input => {
+    input.addEventListener('blur', function() {
+      if (this.hasAttribute('required') && !this.value.trim()) {
+        showError(this, 'This field is required');
+      } else if (this.type === 'email' && this.value && !isValidEmail(this.value)) {
+        showError(this, 'Please enter a valid email address');
+      } else {
+        clearError(this);
+      }
+    });
+
+    input.addEventListener('input', function() {
+      if (this.classList.contains('is-invalid') && this.value.trim()) {
+        clearError(this);
+      }
+    });
+  });
+}
+
+document.addEventListener('DOMContentLoaded', initializeApp);
+
+// ============================================
+// UTILITY FUNCTIONS
+// ============================================
+
+// Format currency
+function formatCurrency(amount) {
+  return `$${parseFloat(amount).toFixed(2)}`;
+}

@@ -1,0 +1,46 @@
+# robots.txt for EVOQ Wellness (evoqwell.netlify.app)
+# Research-grade peptides for lawful research purposes
+
+# Allow all search engines to crawl and index the site
+User-agent: *
+Allow: /
+
+# Disallow checkout and cart pages (no SEO value)
+Disallow: /checkout.html
+Disallow: /checkout
+
+# Disallow admin pages
+Disallow: /admin.html
+Disallow: /admin-products.html
+Disallow: /admin/
+
+# Allow access to images and assets
+Allow: /images/
+Allow: /public/
+Allow: /*.css
+Allow: /*.js
+Allow: /*.png
+Allow: /*.jpg
+Allow: /*.jpeg
+Allow: /*.svg
+Allow: /*.pdf
+
+# Google-specific settings
+User-agent: Googlebot
+Allow: /
+Disallow: /checkout.html
+Disallow: /admin.html
+Disallow: /admin-products.html
+
+# Bing-specific settings
+User-agent: Bingbot
+Allow: /
+Disallow: /checkout.html
+Disallow: /admin.html
+Disallow: /admin-products.html
+
+# Crawl-delay for general bots (in seconds)
+Crawl-delay: 1
+
+# Sitemap location
+Sitemap: https://evoqwell.netlify.app/sitemap.xml
