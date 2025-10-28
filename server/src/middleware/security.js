@@ -32,9 +32,10 @@ export const generalLimiter = rateLimit({
   message: 'Too many requests from this IP, please try again later.',
   standardHeaders: true,
   legacyHeaders: false,
-  // Skip validation for proxy headers when trust proxy is set
-  validate: {
-    xForwardedForHeader: false,
+  // Trust proxy settings for Railway
+  skip: (req) => {
+    // Skip rate limiting for health checks
+    return req.path === '/api/health';
   },
 });
 
@@ -46,9 +47,6 @@ export const authLimiter = rateLimit({
   standardHeaders: true,
   legacyHeaders: false,
   skipSuccessfulRequests: true, // Don't count successful requests
-  validate: {
-    xForwardedForHeader: false,
-  },
 });
 
 // Order creation rate limiter (10 requests per hour)
@@ -58,9 +56,6 @@ export const orderLimiter = rateLimit({
   message: 'Too many orders from this IP, please try again later.',
   standardHeaders: true,
   legacyHeaders: false,
-  validate: {
-    xForwardedForHeader: false,
-  },
 });
 
 // Promo code validation rate limiter (20 attempts per hour)
@@ -70,9 +65,6 @@ export const promoLimiter = rateLimit({
   message: 'Too many promo code attempts, please try again later.',
   standardHeaders: true,
   legacyHeaders: false,
-  validate: {
-    xForwardedForHeader: false,
-  },
 });
 
 // MongoDB injection prevention

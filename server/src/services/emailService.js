@@ -45,6 +45,22 @@ async function sendEmailJs(templateId, templateParams) {
 }
 
 export async function sendOrderEmails(order, { venmoUrl }) {
+  // TODO: EmailJS doesn't work from backend (browser-only service)
+  // Options to fix:
+  // 1. Use Nodemailer with SMTP (Gmail, SendGrid, etc.)
+  // 2. Return email data to frontend and send from client
+  // 3. Use a backend-compatible email service (SendGrid, Mailgun, AWS SES)
+
+  // Temporarily disabled to prevent crashes
+  console.log('[email] Email sending is temporarily disabled (EmailJS is browser-only)');
+  console.log('[email] Order details:', {
+    orderNumber: order.orderNumber,
+    customer: order.customer.email,
+    total: order.totals.totalCents / 100
+  });
+  return;
+
+  /* Original code - kept for reference when implementing proper solution
   if (!isEmailJsConfigured()) {
     console.warn('[email] EmailJS configuration incomplete. Skipping confirmation emails.');
     return;
@@ -103,4 +119,5 @@ export async function sendOrderEmails(order, { venmoUrl }) {
       console.error(`[email] Failed to send ${template}:`, result.reason);
     }
   });
+  */
 }

@@ -17,8 +17,9 @@ import adminOrdersRouter from './routes/adminOrders.js';
 
 const app = express();
 
-// Trust proxy headers (required for Railway and other reverse proxy environments)
-app.set('trust proxy', true);
+// Trust proxy headers (Railway uses 1 proxy)
+// Set to 1 for Railway, or specific IPs for other deployments
+app.set('trust proxy', 1);
 
 // CORS configuration for production
 const allowedOrigins = [
