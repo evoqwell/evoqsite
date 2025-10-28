@@ -19,6 +19,7 @@ const app = express();
 
 // Trust proxy headers (Railway uses 1 proxy)
 // Set to 1 for Railway, or specific IPs for other deployments
+// This enables proper IP detection behind reverse proxies
 app.set('trust proxy', 1);
 
 // CORS configuration for production
