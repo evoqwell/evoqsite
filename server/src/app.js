@@ -17,6 +17,9 @@ import adminOrdersRouter from './routes/adminOrders.js';
 
 const app = express();
 
+// Trust proxy headers (required for Railway and other reverse proxy environments)
+app.set('trust proxy', true);
+
 // CORS configuration for production
 const allowedOrigins = [
   'https://www.evoqwell.shop',
