@@ -2441,6 +2441,8 @@ button:focus {
 
 .product-modal {
   max-width: 960px;
+  max-height: 90vh;
+  overflow-y: auto;
 }
 
 .add-to-cart-modal {
@@ -2880,9 +2882,23 @@ button:focus {
     max-width: none;
   }
 
+  .product-modal-backdrop {
+    align-items: flex-start;
+    justify-content: center;
+    padding: 1rem;
+  }
+
   .product-modal__content {
     grid-template-columns: 1fr;
     padding: 2rem;
+  }
+
+  .product-modal {
+    max-height: calc(100vh - 2rem);
+  }
+
+  .product-modal__image {
+    padding: 1.25rem;
   }
 
   .product-modal__image img {
@@ -2911,6 +2927,14 @@ button:focus {
 }
 
 @media (max-width: 480px) {
+  .product-modal-backdrop {
+    padding: 0.75rem;
+  }
+
+  .product-modal {
+    max-height: calc(100vh - 1.5rem);
+  }
+
   .product-modal__content {
     padding: 1.5rem;
   }
