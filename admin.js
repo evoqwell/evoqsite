@@ -35,6 +35,21 @@ document.addEventListener('DOMContentLoaded', () => {
   initializeAdmin();
 });
 
+function parseCategoriesInput(value) {
+  if (!value) return [];
+  return value
+    .split(',')
+    .map((entry) => entry.trim())
+    .filter(Boolean);
+}
+
+function formatCategoriesForInput(product) {
+  if (Array.isArray(product?.categories) && product.categories.length > 0) {
+    return product.categories.join(', ');
+  }
+  return product?.category || '';
+}
+
 function initializeAdmin() {
   if (connectForm) {
     connectForm.addEventListener('submit', handleConnect);
@@ -131,6 +146,7 @@ function renderProducts(products) {
     const form = document.createElement('form');
     form.className = 'admin-card';
     form.dataset.sku = product.sku;
+    const categoriesValue = escapeHtml(formatCategoriesForInput(product));
     form.innerHTML = `
       <header class="admin-card-header">
         <h3>${escapeHtml(product.name)}</h3>
@@ -160,8 +176,8 @@ function renderProducts(products) {
           <input type="text" name="image" value="${escapeHtml(product.image || '')}">
         </label>
         <label>
-          Category
-          <input type="text" name="category" value="${escapeHtml(product.category || '')}">
+          Categories
+          <input type="text" name="categories" value="${categoriesValue}" placeholder="e.g., Skin, Metabolism">
         </label>
         <label>
           COA File Path (e.g., /COAs/ProductName COA.pdf)
@@ -304,13 +320,15 @@ async function handleCreateProduct(event) {
   }
 
   const formData = new FormData(event.target);
+  const categories = parseCategoriesInput(formData.get('categories')?.toString() || '');
   const payload = {
     sku: formData.get('sku').trim(),
     name: formData.get('name').trim(),
     description: formData.get('description').trim(),
     price: parseFloat(formData.get('price')),
     image: formData.get('image').trim(),
-    category: formData.get('category').trim(),
+    categories,
+    category: categories[0] || '',
     coa: formData.get('coa').trim(),
     stock: parseInt(formData.get('stock'), 10) || 0,
     isActive: formData.get('isActive') === 'on'
@@ -335,12 +353,14 @@ async function handleCreateProduct(event) {
 async function handleUpdateProduct(event, sku) {
   event.preventDefault();
   const formData = new FormData(event.target);
+  const categories = parseCategoriesInput(formData.get('categories')?.toString() || '');
   const payload = {
     name: formData.get('name').trim(),
     description: formData.get('description').trim(),
     price: parseFloat(formData.get('price')),
     image: formData.get('image').trim(),
-    category: formData.get('category').trim(),
+    categories,
+    category: categories[0] || '',
     coa: formData.get('coa').trim(),
     stock: parseInt(formData.get('stock'), 10) || 0,
     isActive: formData.get('isActive') === 'on'

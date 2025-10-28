@@ -1,5 +1,5 @@
 import { fetchProducts } from './lib/api.js';
-import { addToCart as addItemToCart } from './lib/cart.js';
+import { openAddToCartModal, openProductDetailsModal } from './lib/productModals.js';
 
 document.addEventListener('DOMContentLoaded', () => {
   loadProducts();
@@ -72,39 +72,9 @@ function createProductCard(product) {
   title.textContent = product.name;
   info.appendChild(title);
 
-  if (product.description) {
-    const description = document.createElement('p');
-    description.className = 'product-description';
-    description.textContent = product.description;
-    info.appendChild(description);
-  }
-
-  if (product.coa) {
-    const coaWrapper = document.createElement('div');
-    coaWrapper.className = 'product-coa';
-
-    const coaLink = document.createElement('a');
-    coaLink.className = 'btn-coa';
-    coaLink.href = product.coa;
-    coaLink.target = '_blank';
-    coaLink.rel = 'noopener noreferrer';
-
-    const icon = document.createElement('span');
-    icon.innerHTML = `
-      <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-        <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
-        <polyline points="14 2 14 8 20 8"></polyline>
-        <line x1="16" y1="13" x2="8" y2="13"></line>
-        <line x1="16" y1="17" x2="8" y2="17"></line>
-        <polyline points="10 9 9 9 8 9"></polyline>
-      </svg>
-    `;
-    icon.setAttribute('aria-hidden', 'true');
-    coaLink.appendChild(icon);
-    coaLink.appendChild(document.createTextNode(' View COA'));
-
-    coaWrapper.appendChild(coaLink);
-    info.appendChild(coaWrapper);
+  const categories = createProductCategories(product);
+  if (categories) {
+    info.appendChild(categories);
   }
 
   const footer = document.createElement('div');
@@ -120,18 +90,30 @@ function createProductCard(product) {
   stockStatus.textContent = stockLabel;
   footer.appendChild(stockStatus);
 
-  const button = document.createElement('button');
-  button.className = 'btn-add-cart';
-  button.type = 'button';
+  const actions = document.createElement('div');
+  actions.className = 'product-actions';
+
+  const viewDetails = document.createElement('button');
+  viewDetails.className = 'btn-secondary btn-view-details';
+  viewDetails.type = 'button';
+  viewDetails.textContent = 'View Details';
+  viewDetails.addEventListener('click', () => openProductDetailsModal(product));
+  actions.appendChild(viewDetails);
+
+  const addToCartBtn = document.createElement('button');
+  addToCartBtn.className = 'btn-add-cart';
+  addToCartBtn.type = 'button';
   if (isOutOfStock) {
-    button.disabled = true;
-    button.setAttribute('aria-disabled', 'true');
-    button.textContent = 'Out of Stock';
+    addToCartBtn.disabled = true;
+    addToCartBtn.setAttribute('aria-disabled', 'true');
+    addToCartBtn.textContent = 'Out of Stock';
   } else {
-    button.textContent = 'Add to Cart';
-    button.addEventListener('click', () => handleAddToCart(product));
+    addToCartBtn.textContent = 'Add to Cart';
+    addToCartBtn.addEventListener('click', () => openAddToCartModal(product));
   }
-  footer.appendChild(button);
+  actions.appendChild(addToCartBtn);
+
+  footer.appendChild(actions);
 
   info.appendChild(footer);
   card.appendChild(imageWrapper);
@@ -140,40 +122,49 @@ function createProductCard(product) {
   return card;
 }
 
-function handleAddToCart(product) {
-  const stockCount = Number(product.stock);
-  if (!Number.isNaN(stockCount) && stockCount <= 0) {
-    return;
+function createProductCategories(product) {
+  const categories = Array.isArray(product.categories) && product.categories.length
+    ? product.categories
+    : typeof product.category === 'string' && product.category.trim()
+    ? [product.category.trim()]
+    : [];
+
+  if (!categories.length) {
+    return null;
   }
 
-  addItemToCart(product.id, product.name, Number(product.price), 1);
-  showAddedToCartFeedback(product.name);
-}
+  const container = document.createElement('div');
+  container.className = 'product-categories';
 
-function showAddedToCartFeedback(productName) {
-  const existing = document.querySelector('.cart-notification');
-  if (existing) existing.remove();
+  categories.forEach((category) => {
+    const chip = document.createElement('span');
+    chip.className = 'product-category-chip';
+    chip.textContent = category;
+    container.appendChild(chip);
+  });
 
-  const notification = document.createElement('div');
-  notification.className = 'cart-notification';
-  notification.textContent = `${productName} added to cart`;
-
-  document.body.appendChild(notification);
-
-  setTimeout(() => notification.classList.add('show'), 10);
-
-  setTimeout(() => {
-    notification.classList.remove('show');
-    setTimeout(() => notification.remove(), 300);
-  }, 3000);
+  return container;
 }
 
 function renderLoading(container) {
-  container.innerHTML = `
-    <div class="products-loading">
-      <p>Loading products...</p>
-    </div>
-  `;
+  // Create skeleton loaders for a better loading experience
+  const skeletonCount = 8; // Show 8 skeleton cards while loading
+  let skeletonHTML = '<div class="skeleton-container">';
+
+  for (let i = 0; i < skeletonCount; i++) {
+    skeletonHTML += `
+      <div class="skeleton-card">
+        <div class="skeleton skeleton-image"></div>
+        <div class="skeleton skeleton-title"></div>
+        <div class="skeleton skeleton-text"></div>
+        <div class="skeleton skeleton-text short"></div>
+        <div class="skeleton skeleton-button"></div>
+      </div>
+    `;
+  }
+
+  skeletonHTML += '</div>';
+  container.innerHTML = skeletonHTML;
 }
 
 function renderEmpty(container) {

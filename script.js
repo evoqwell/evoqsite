@@ -2,6 +2,8 @@
  * Handles cart functionality, form validation, animations, and shared UI helpers
  */
 
+import './lib/animations.js'; // Import enhanced animations
+
 console.log('EVOQ script.js loaded');
 
 // ============================================

@@ -26,6 +26,24 @@ const productSchema = new mongoose.Schema(
       type: String,
       trim: true
     },
+    categories: {
+      type: [String],
+      default: [],
+      set: (value) => {
+        if (Array.isArray(value)) {
+          return value
+            .map((entry) => (typeof entry === 'string' ? entry.trim() : ''))
+            .filter(Boolean);
+        }
+        if (typeof value === 'string') {
+          return value
+            .split(',')
+            .map((entry) => entry.trim())
+            .filter(Boolean);
+        }
+        return [];
+      }
+    },
     category: {
       type: String,
       trim: true
@@ -55,6 +73,12 @@ productSchema.set('toJSON', {
   transform: (_, ret) => {
     ret.id = ret.sku;
     ret.price = Number((ret.priceCents / 100).toFixed(2));
+    if (!Array.isArray(ret.categories) || ret.categories.length === 0) {
+      ret.categories = ret.category ? [ret.category] : [];
+    }
+    if (!ret.category && Array.isArray(ret.categories) && ret.categories.length > 0) {
+      ret.category = ret.categories[0];
+    }
     delete ret._id;
     delete ret.priceCents;
     delete ret.isActive;

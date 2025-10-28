@@ -7,12 +7,29 @@ const router = Router();
 
 router.use(requireAdmin);
 
+function normalizeCategories(value) {
+  if (!value) return [];
+  if (Array.isArray(value)) {
+    return value
+      .map((entry) => (typeof entry === 'string' ? entry.trim() : ''))
+      .filter(Boolean);
+  }
+  if (typeof value === 'string') {
+    return value
+      .split(',')
+      .map((entry) => entry.trim())
+      .filter(Boolean);
+  }
+  return [];
+}
+
 const productSchema = z.object({
   sku: z.string().trim().min(1),
   name: z.string().trim().min(1),
   description: z.string().trim().optional().default(''),
   price: z.number().positive(),
   image: z.string().trim().optional().default(''),
+  categories: z.any().optional(),
   category: z.string().trim().optional().default(''),
   coa: z.string().trim().optional().default(''),
   stock: z.number().int().nonnegative().optional().default(0),
@@ -33,6 +50,11 @@ router.get('/', async (req, res, next) => {
         description: product.description,
         price: Number((product.priceCents / 100).toFixed(2)),
         image: product.image,
+        categories: normalizeCategories(
+          Array.isArray(product.categories) && product.categories.length
+            ? product.categories
+            : product.category
+        ),
         category: product.category,
         coa: product.coa,
         stock: product.stock,
@@ -52,13 +74,17 @@ router.post('/', async (req, res, next) => {
       return res.status(409).json({ error: 'Product with this SKU already exists.' });
     }
 
+    const categories = normalizeCategories(data.categories ?? data.category);
+    const primaryCategory = categories[0] || data.category || '';
+
     const product = await Product.create({
       sku: data.sku,
       name: data.name,
       description: data.description,
       priceCents: Math.round(data.price * 100),
       image: data.image,
-      category: data.category,
+      categories,
+      category: primaryCategory,
       coa: data.coa,
       stock: data.stock,
       isActive: data.isActive
@@ -70,6 +96,7 @@ router.post('/', async (req, res, next) => {
       description: product.description,
       price: Number((product.priceCents / 100).toFixed(2)),
       image: product.image,
+      categories: product.categories,
       category: product.category,
       coa: product.coa,
       stock: product.stock,
@@ -97,6 +124,16 @@ router.put('/:sku', async (req, res, next) => {
       delete update.price;
     }
 
+    if (update.categories !== undefined) {
+      const categories = normalizeCategories(update.categories);
+      update.categories = categories;
+      const fromPayloadCategory =
+        typeof update.category === 'string' ? update.category.trim() : '';
+      update.category = categories[0] || fromPayloadCategory || '';
+    } else if (update.category !== undefined) {
+      update.category = typeof update.category === 'string' ? update.category.trim() : '';
+    }
+
     const product = await Product.findOneAndUpdate(
       { sku },
       { $set: update },
@@ -113,6 +150,7 @@ router.put('/:sku', async (req, res, next) => {
       description: product.description,
       price: Number((product.priceCents / 100).toFixed(2)),
       image: product.image,
+      categories: product.categories,
       category: product.category,
       coa: product.coa,
       stock: product.stock,
