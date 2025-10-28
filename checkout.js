@@ -1,6 +1,7 @@
 import { fetchPromoCode, createOrder, fetchProducts } from './lib/api.js';
 import { getCart, clearCart, updateQuantity, removeFromCart } from './lib/cart.js';
 import { escapeHtml, sanitizeProductId, sanitizeCurrency } from './lib/sanitizer.js';
+import { sendOrderEmails } from './lib/email.js';
 
 let appliedPromo = null;
 let shippingRate = 10;
@@ -303,8 +304,16 @@ async function handleCheckoutSubmit(event) {
     payload.promoCode = appliedPromo.code;
   }
 
+  let emailError = null;
   try {
     const order = await createOrder(payload);
+
+    try {
+      await sendOrderEmails(order);
+    } catch (emailErr) {
+      emailError = emailErr;
+      console.error('[checkout] Failed to dispatch order emails', emailErr);
+    }
 
     clearCart();
     appliedPromo = null;
@@ -312,7 +321,14 @@ async function handleCheckoutSubmit(event) {
     displayCartItems();
     form.reset();
 
-    showOrderConfirmation(order);
+    showOrderConfirmation(order, { emailError });
+
+    if (emailError && responseDiv) {
+      responseDiv.className = 'form-response error';
+      responseDiv.textContent =
+        'Your order was placed, but we could not send confirmation emails. Please contact support if you do not receive details shortly.';
+      responseDiv.style.display = 'block';
+    }
   } catch (error) {
     console.error('Checkout error:', error);
     if (responseDiv) {
@@ -328,26 +344,49 @@ async function handleCheckoutSubmit(event) {
   }
 }
 
-function showOrderConfirmation(order) {
+function showOrderConfirmation(order, { emailError } = {}) {
   const modalContent = document.getElementById('orderConfirmationContent');
-  if (!modalContent) return;
+  if (!modalContent || !order) return;
 
-  const itemsHtml = order.items
-    .map(
-      (item) => `
+  const safeOrderNumber = escapeHtml(order.orderNumber || '');
+  const safeCustomerName = escapeHtml(order.customer?.name || '');
+  const safeCustomerEmail = escapeHtml(order.customer?.email || '');
+  const promoCode = order.promoCode ? escapeHtml(order.promoCode) : null;
+  const promoLabel = promoCode ? `Discount (${promoCode})` : 'Discount';
+
+  const addressLines = [
+    order.customer?.address,
+    [order.customer?.city, order.customer?.state, order.customer?.zip].filter(Boolean).join(', ')
+  ]
+    .filter(Boolean)
+    .map((line) => escapeHtml(line));
+  const formattedAddress = addressLines.join('<br>');
+
+  const itemsHtml = (order.items || [])
+    .map((item) => {
+      const name = escapeHtml(item?.name || 'Product');
+      const quantity = Number(item?.quantity || 0);
+      const lineTotal = Number(item?.lineTotal || 0).toFixed(2);
+      return `
         <div style="display: flex; justify-content: space-between; padding: 8px 0; border-bottom: 1px solid #e5e7eb;">
-          <span>${item.name} x ${item.quantity}</span>
-          <span>$${Number(item.lineTotal).toFixed(2)}</span>
+          <span>${name} x ${quantity}</span>
+          <span>$${lineTotal}</span>
         </div>
-      `
-    )
+      `;
+    })
     .join('');
+
+  const subtotal = Number(order.totals?.subtotal || 0).toFixed(2);
+  const discountValue = Number(order.totals?.discount || 0);
+  const shipping = Number(order.totals?.shipping || 0).toFixed(2);
+  const total = Number(order.totals?.total || 0).toFixed(2);
+  const safeVenmoUrl = escapeHtml(order.venmoUrl || '#');
 
   modalContent.innerHTML = `
     <div style="text-align: center; margin-bottom: 24px;">
       <div style="display: inline-block; background: linear-gradient(135deg, #8A7D6E 0%, #6B5F52 100%); color: #F5F1E9; padding: 12px 24px; border-radius: 50px; margin-bottom: 16px; box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);">
         <span style="font-size: 0.85rem; font-weight: 500; letter-spacing: 0.5px;">ORDER NUMBER</span>
-        <div style="font-size: 1.3rem; font-weight: 700; margin-top: 4px;">${order.orderNumber}</div>
+        <div style="font-size: 1.3rem; font-weight: 700; margin-top: 4px;">${safeOrderNumber}</div>
       </div>
     </div>
 
@@ -361,50 +400,60 @@ function showOrderConfirmation(order) {
       <div style="margin-top: 16px; padding-top: 16px; border-top: 2px solid #D9CDBF;">
         <div style="display: flex; justify-content: space-between; margin-bottom: 10px; color: #444040;">
           <span>Subtotal:</span>
-          <span style="font-weight: 500;">$${Number(order.totals.subtotal).toFixed(2)}</span>
+          <span style="font-weight: 500;">$${subtotal}</span>
         </div>
-        ${Number(order.totals.discount) > 0 ? `
+        ${discountValue > 0 ? `
           <div style="display: flex; justify-content: space-between; margin-bottom: 10px; color: #8A7D6E; font-weight: 600;">
-            <span>Discount ${order.promoCode ? '(' + order.promoCode + ')' : ''}:</span>
-            <span>-$${Number(order.totals.discount).toFixed(2)}</span>
+            <span>${promoLabel}:</span>
+            <span>-$${discountValue.toFixed(2)}</span>
           </div>
         ` : ''}
         <div style="display: flex; justify-content: space-between; margin-bottom: 10px; color: #444040;">
           <span>Shipping:</span>
-          <span style="font-weight: 500;">$${Number(order.totals.shipping).toFixed(2)}</span>
+          <span style="font-weight: 500;">$${shipping}</span>
         </div>
         <div style="display: flex; justify-content: space-between; font-size: 1.35rem; font-weight: 700; color: #333333; padding-top: 12px; margin-top: 8px; border-top: 2px solid #333333;">
           <span>Total:</span>
-          <span>$${Number(order.totals.total).toFixed(2)}</span>
+          <span>$${total}</span>
         </div>
       </div>
 
       <div style="margin-top: 20px; padding-top: 20px; border-top: 1px solid #D9CDBF;">
         <p style="margin-bottom: 8px; font-weight: 600; color: #333333;">Shipping Address:</p>
         <p style="margin: 0; color: #444040; line-height: 1.6;">
-          ${order.customer.name}<br>
-          ${order.customer.address}<br>
-          ${order.customer.city}, ${order.customer.state} ${order.customer.zip}
+          ${safeCustomerName || 'Customer'}<br>
+          ${formattedAddress}
         </p>
       </div>
     </div>
 
     <div style="text-align: center; margin-bottom: 24px;">
       <p style="margin-bottom: 16px; font-size: 1.1rem; font-weight: 500; color: #333333;">Complete Payment with Venmo</p>
-      <a href="${order.venmoUrl}" target="_blank" rel="noopener noreferrer" style="display: inline-block; background: linear-gradient(135deg, #8A7D6E 0%, #6B5F52 100%); color: #F5F1E9; padding: 16px 48px; border-radius: 12px; text-decoration: none; font-weight: 700; font-size: 1.15rem; box-shadow: 0 8px 16px rgba(138, 125, 110, 0.3); transition: all 0.3s; border: none;">
-        Pay $${Number(order.totals.total).toFixed(2)} Now
+      <a href="${safeVenmoUrl}" target="_blank" rel="noopener noreferrer" style="display: inline-block; background: linear-gradient(135deg, #8A7D6E 0%, #6B5F52 100%); color: #F5F1E9; padding: 16px 48px; border-radius: 12px; text-decoration: none; font-weight: 700; font-size: 1.15rem; box-shadow: 0 8px 16px rgba(138, 125, 110, 0.3); transition: all 0.3s; border: none;">
+        Pay $${total} Now
       </a>
     </div>
 
+    ${
+      emailError
+        ? `
+    <div style="background: #FFF7ED; padding: 20px; border-radius: 12px; border-left: 4px solid #DC6E3F; box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);">
+      <h6 style="margin: 0 0 8px 0; font-weight: 600; color: #8A4A2C;">We couldn’t send your confirmation email</h6>
+      <p style="margin: 0; color: #5C4638; font-size: 0.9rem;">Your order was received successfully. If you don’t see an email soon, please reach out through our contact page and we’ll help right away.</p>
+    </div>
+    `
+        : `
     <div style="background: linear-gradient(135deg, #F5F1E9 0%, #ffffff 100%); padding: 20px; border-radius: 12px; border-left: 4px solid #8A7D6E; box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);">
       <div style="display: flex; align-items: center; gap: 12px;">
         <div style="background: #8A7D6E; color: #F5F1E9; width: 32px; height: 32px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 1.2rem;">@</div>
         <div style="flex: 1;">
-          <p style="color: #333333; font-weight: 600; margin: 0; font-size: 0.95rem;">Confirmation emails are on the way to ${order.customer.email}</p>
+          <p style="color: #333333; font-weight: 600; margin: 0; font-size: 0.95rem;">Confirmation emails are on the way to ${safeCustomerEmail}</p>
           <p style="color: #444040; font-size: 0.85rem; margin: 4px 0 0 0;">Check your spam folder if you do not see them soon.</p>
         </div>
       </div>
     </div>
+    `
+    }
   `;
 
   const modal = new bootstrap.Modal(document.getElementById('orderConfirmationModal'));

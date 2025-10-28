@@ -6,7 +6,6 @@ import { Order } from '../models/Order.js';
 import { validateOrderPayload } from '../validators/orderValidator.js';
 import { calculateOrderTotals } from '../utils/orderTotals.js';
 import { config } from '../config/env.js';
-import { sendOrderEmails } from '../services/emailService.js';
 import { centsToDollars } from '../utils/money.js';
 import { orderLimiter, logSecurityEvent } from '../middleware/security.js';
 
@@ -113,10 +112,6 @@ router.post('/', orderLimiter, async (req, res, next) => {
         totals.totalCents
       ).toFixed(2)})`
     );
-
-    sendOrderEmails(order, { venmoUrl }).catch((err) => {
-      console.error('[email] Failed to send confirmation emails', err);
-    });
 
     res.status(201).json({
       orderNumber,

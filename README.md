@@ -5,7 +5,7 @@ Production-ready storefront for EVOQ Wellness combining a static frontend with a
 ## Features
 - Server-validated checkout with promo code enforcement and calculated Venmo totals
 - MongoDB product, promo, and order collections with simple seed script
-- Transactional emails dispatched from the API via EmailJS (no client-side keys in the bundle)
+- Transactional emails dispatched from the client via EmailJS using public keys
 - Static marketing pages with shared cart state, age gate, and responsive design
 - Token-protected admin dashboard for managing catalog, promo codes, and order status
 - Dynamic stock status with automatic out-of-stock indicators on the storefront
@@ -20,7 +20,7 @@ Production-ready storefront for EVOQ Wellness combining a static frontend with a
 - Node.js 18+
 - npm 9+
 - MongoDB connection string (Atlas recommended)
-- EmailJS service, template, and public key values (server-side usage)
+- EmailJS public key, service ID, and template IDs (client-side configuration)
 
 ## Setup
 
@@ -42,24 +42,22 @@ Production-ready storefront for EVOQ Wellness combining a static frontend with a
 
    | Variable | Description |
    |----------|-------------|
-   | `MONGODB_URI` | Mongo connection string |
-   | `VENMO_USERNAME` | Venmo business or personal username |
-   | `ADMIN_EMAIL` | Internal address to receive new order alerts |
-   | `FROM_EMAIL` | Friendly from address for customer emails |
-   | `EMAILJS_SERVICE_ID` | EmailJS service ID |
-   | `EMAILJS_BUYER_TEMPLATE_ID` | Template ID for buyer confirmation |
-   | `EMAILJS_ADMIN_TEMPLATE_ID` | Template ID for internal notification |
-   | `EMAILJS_PUBLIC_KEY` | EmailJS public key (`user_id`) |
-   | `EMAILJS_ACCESS_TOKEN` | *(optional)* access token if using private key security |
-   | `ADMIN_ACCESS_TOKEN` | Secret token required to reach the admin API and dashboard |
-   | `SHIPPING_FLAT_RATE_CENTS` | (optional) flat-rate shipping in cents (default 1000 = $10) |
+  | `MONGODB_URI` | Mongo connection string |
+  | `VENMO_USERNAME` | Venmo business or personal username |
+  | `ADMIN_ACCESS_TOKEN` | Secret token required to reach the admin API and dashboard |
+  | `SHIPPING_FLAT_RATE_CENTS` | (optional) flat-rate shipping in cents (default 1000 = $10) |
 
    Frontend build-time variables (set in `.env` or Netlify UI):
 
    | Variable | Description |
    |----------|-------------|
    | `VITE_SITE_URL` | Canonical site URL used in meta tags |
-   | `VITE_API_BASE_URL` | Base URL for the API (e.g. `https://api.example.com`). Leave empty to use same-origin `/api`. |
+  | `VITE_API_BASE_URL` | Base URL for the API (e.g. `https://api.example.com`). Leave empty to use same-origin `/api`. |
+  | `VITE_EMAILJS_PUBLIC_KEY` | EmailJS public key (`user_id`) used to initialise the client SDK |
+  | `VITE_EMAILJS_SERVICE_ID` | EmailJS service ID that owns the templates |
+  | `VITE_EMAILJS_BUYER_TEMPLATE_ID` | Template ID for the customer confirmation email |
+  | `VITE_EMAILJS_ADMIN_TEMPLATE_ID` | Template ID for the internal notification email |
+  | `VITE_EMAILJS_FROM_EMAIL` | *(optional)* Friendly from address passed to EmailJS templates |
 
 3. **Seed product and promo data**
    ```bash
@@ -102,7 +100,7 @@ Configure CORS/HTTPS so the frontend can reach the API. For serverless platforms
 - Cart badge updates across pages (desktop & mobile)
 - Checkout flow posts to `/api/orders`, server returns Venmo link and order number
 - Promo codes validate against database, including rejection of inactive codes
-- Emails delivered to both buyer and admin with full order summary
+- Emails delivered to both buyer and admin with full order summary (sent from the browser via EmailJS)
 - Cart clears and confirmation modal displays after successful order
 - Age gate still blocks under-21 visitors for 24 hours
 
