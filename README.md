@@ -61,7 +61,7 @@ Production-ready storefront for EVOQ Wellness combining a static frontend with a
 
 3. **Seed product and promo data**
    ```bash
-   npm run seed        # runs server/seed/seed.js via npm --prefix server
+   npm run seed        # runs server/seed/seed.js via npm --prefix server - already done, though.
    ```
 
 4. **Run locally**
@@ -77,8 +77,8 @@ Production-ready storefront for EVOQ Wellness combining a static frontend with a
 
 | Component | Recommendation |
 |-----------|----------------|
-| Frontend  | Netlify, Vercel, or static hosting serving `dist/` |
-| Backend   | Render, Fly.io, Railway, or traditional VPS running `node server/src/index.js` |
+| Frontend  | Netlify `dist/` |
+| Backend   | Railway `node server/src/index.js` |
 | Database  | MongoDB Atlas with IP allow list and user-scoped credentials |
 
 Configure CORS/HTTPS so the frontend can reach the API. For serverless platforms, adapt server/src/app.js to the platform's handler signature.
@@ -91,8 +91,8 @@ Configure CORS/HTTPS so the frontend can reach the API. For serverless platforms
 - Review incoming orders and update their status (`pending_payment`, `paid`, `fulfilled`, `cancelled`). Status changes are saved immediately.
 
 ## Data Management
-- Product and promo definitions live in MongoDB; use the seed script or admin dashboard as a starting point.
-- Each product uses `sku` as a stable IDâ€”avoid reusing the same SKU across different items.
+- Product and promo definitions live in MongoDB.
+- Each product uses `sku` as a stable ID - avoid reusing the same SKU across different items.
 - Orders are recorded with status `pending_payment`. Update status to `paid` once Venmo confirms payment so fulfillment can track progress.
 
 ## Testing Checklist
@@ -121,7 +121,6 @@ Backend-specific scripts live under `server/package.json` if you prefer to work 
 - Large product imagery has not been re-encoded yet; consider swapping in optimized assets to improve Core Web Vitals.
 
 ---
-Maintained by EVOQ Wellness. Contributions welcome via pull request. Reach out to `orders@evoqwellness.com` for operational questions.
 
 
 
