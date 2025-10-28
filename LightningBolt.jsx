@@ -1,0 +1,24 @@
+export default function LightningBolt({ className = "", width = "100%", height = "100%" }) {
+  return (
+    <svg
+      xmlns="http://www.w3.org/2000/svg"
+      viewBox="0 0 100 200"
+      fill="currentColor"
+      width={width}
+      height={height}
+      className={className}
+    >
+      <path d="M 55 5
+               L 35 85
+               L 48 85
+               L 25 135
+               L 42 135
+               L 15 195
+               L 35 137
+               L 28 137
+               L 50 87
+               L 42 87
+               Z" />
+    </svg>
+  );
+}

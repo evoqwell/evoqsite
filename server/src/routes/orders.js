@@ -79,6 +79,12 @@ router.post('/', async (req, res, next) => {
       }
     });
 
+    console.log(
+      `[orders] Created ${order.orderNumber} (${order.items.length} items, total $${centsToDollars(
+        totals.totalCents
+      ).toFixed(2)})`
+    );
+
     sendOrderEmails(order, { venmoUrl }).catch((err) => {
       console.error('[email] Failed to send confirmation emails', err);
     });
@@ -105,6 +111,7 @@ router.post('/', async (req, res, next) => {
       }
     });
   } catch (error) {
+    console.error('[orders] Failed to create order', error);
     next(error);
   }
 });
