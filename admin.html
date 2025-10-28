@@ -4,6 +4,13 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="robots" content="noindex, nofollow">
+
+    <!-- Favicon -->
+    <link rel="icon" type="image/png" href="/Logo.PNG">
+    <link rel="shortcut icon" type="image/png" href="/Logo.PNG">
+    <link rel="apple-touch-icon" href="/Logo.PNG">
+    <link rel="apple-touch-icon-precomposed" href="/Logo.PNG">
+
     <title>EVOQ Admin Dashboard</title>
     <link rel="stylesheet" href="/styles.css">
     <style>
@@ -30,6 +37,46 @@
             font-size: 0.95rem;
             background: #e8e3dc;
             color: #2f2a25;
+        }
+        .admin-tabs {
+            display: flex;
+            gap: 0.75rem;
+            border-bottom: 1px solid rgba(0,0,0,0.1);
+            padding-bottom: 0.5rem;
+            overflow-x: auto;
+            scrollbar-width: thin;
+            -webkit-overflow-scrolling: touch;
+        }
+        .admin-tabs::-webkit-scrollbar {
+            height: 4px;
+        }
+        .admin-tabs::-webkit-scrollbar-thumb {
+            background: rgba(47,42,37,0.15);
+            border-radius: 999px;
+        }
+        .admin-tab {
+            background: transparent;
+            border: none;
+            color: rgba(47,42,37,0.7);
+            font-weight: 600;
+            padding: 0.6rem 1.2rem;
+            border-radius: 999px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            flex: 0 0 auto;
+        }
+        .admin-tab.active {
+            color: #f5f1e9;
+            background: linear-gradient(135deg, #8a7d6e 0%, #6b5f52 100%);
+            box-shadow: 0 8px 18px rgba(138, 125, 110, 0.25);
+        }
+        .admin-tab:hover:not(.active) {
+            background: rgba(47,42,37,0.08);
+            color: #2f2a25;
+        }
+        .admin-tab:focus-visible {
+            outline: 2px solid #6b5f52;
+            outline-offset: 2px;
         }
         .admin-status.error {
             background: #ffe5e5;
@@ -184,6 +231,9 @@
         .admin-create button {
             align-self: flex-start;
         }
+        .admin-section[hidden] {
+            display: none !important;
+        }
         @media (max-width: 640px) {
             .admin-connect {
                 flex-direction: column;
@@ -209,9 +259,14 @@
                 <button type="submit">Connect</button>
             </form>
             <div id="admin-status" class="admin-status">Awaiting connection...</div>
+            <nav class="admin-tabs" role="tablist">
+                <button id="admin-tab-products" type="button" class="admin-tab active" role="tab" aria-selected="true" aria-controls="admin-products-panel" data-admin-tab="products">Products</button>
+                <button id="admin-tab-promos" type="button" class="admin-tab" role="tab" aria-selected="false" aria-controls="admin-promos-panel" data-admin-tab="promos">Promo Codes</button>
+                <button id="admin-tab-orders" type="button" class="admin-tab" role="tab" aria-selected="false" aria-controls="admin-orders-panel" data-admin-tab="orders">Orders</button>
+            </nav>
         </header>
 
-        <section class="admin-section">
+        <section class="admin-section" id="admin-products-panel" role="tabpanel" aria-labelledby="admin-tab-products" data-admin-panel="products">
             <h2>Products</h2>
             <div class="admin-create">
                 <h3>Add Product</h3>
@@ -258,7 +313,7 @@
             <div id="admin-products"></div>
         </section>
 
-        <section class="admin-section">
+        <section class="admin-section" id="admin-promos-panel" role="tabpanel" aria-labelledby="admin-tab-promos" data-admin-panel="promos" hidden>
             <h2>Promo Codes</h2>
             <div class="admin-create">
                 <h3>Add Promo</h3>
@@ -294,7 +349,7 @@
             <div id="admin-promos"></div>
         </section>
 
-        <section class="admin-section">
+        <section class="admin-section" id="admin-orders-panel" role="tabpanel" aria-labelledby="admin-tab-orders" data-admin-panel="orders" hidden>
             <h2>Orders</h2>
             <div id="admin-orders"></div>
         </section>

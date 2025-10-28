@@ -1,0 +1,16 @@
+# Robots.txt for EVOQ Wellness
+# https://evoqwell.shop
+
+User-agent: *
+Allow: /
+
+# Exclude admin section from indexing
+Disallow: /admin.html
+Disallow: /admin
+Disallow: /api/admin/
+
+# Sitemap location
+Sitemap: https://evoqwell.shop/sitemap.xml
+
+# Crawl-delay for polite crawling (optional)
+Crawl-delay: 1

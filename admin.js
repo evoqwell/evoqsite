@@ -12,11 +12,15 @@
 } from './lib/adminApi.js';
 
 let adminToken = '';
+let activeTab = 'products';
 let lastLoadedData = {
   products: [],
   promos: [],
   orders: []
 };
+
+const tabButtons = Array.from(document.querySelectorAll('[data-admin-tab]'));
+const tabPanels = Array.from(document.querySelectorAll('[data-admin-panel]'));
 
 const statusBar = document.getElementById('admin-status');
 const connectForm = document.getElementById('admin-connect-form');
@@ -50,6 +54,18 @@ function initializeAdmin() {
   if (promoCreateForm) {
     promoCreateForm.addEventListener('submit', handleCreatePromo);
   }
+
+  const storedTab = sessionStorage.getItem('evoq_admin_tab');
+  if (storedTab) {
+    activeTab = storedTab;
+  }
+
+  if (!tabButtons.some((button) => button.dataset.adminTab === activeTab)) {
+    activeTab = 'products';
+  }
+
+  setupTabs();
+  setActiveTab(activeTab);
 }
 
 async function handleConnect(event) {
@@ -430,6 +446,75 @@ async function handleUpdateOrderStatus(orderNumber, status) {
   }
 }
 
+function setupTabs() {
+  if (!tabButtons.length) return;
+
+  tabButtons.forEach((button, index) => {
+    const isActive = button.dataset.adminTab === activeTab;
+    button.setAttribute('tabindex', isActive ? '0' : '-1');
+    button.addEventListener('click', () => {
+      setActiveTab(button.dataset.adminTab);
+    });
+    button.addEventListener('keydown', (event) => handleTabKey(event, index));
+  });
+}
+
+function handleTabKey(event, currentIndex) {
+  const keys = ['ArrowLeft', 'ArrowRight', 'Home', 'End'];
+  if (!keys.includes(event.key)) {
+    return;
+  }
+
+  event.preventDefault();
+  let newIndex = currentIndex;
+
+  if (event.key === 'ArrowRight') {
+    newIndex = (currentIndex + 1) % tabButtons.length;
+  } else if (event.key === 'ArrowLeft') {
+    newIndex = (currentIndex - 1 + tabButtons.length) % tabButtons.length;
+  } else if (event.key === 'Home') {
+    newIndex = 0;
+  } else if (event.key === 'End') {
+    newIndex = tabButtons.length - 1;
+  }
+
+  const nextTab = tabButtons[newIndex];
+  if (nextTab) {
+    setActiveTab(nextTab.dataset.adminTab, { focusButton: true });
+  }
+}
+
+function setActiveTab(tab, { focusButton = false } = {}) {
+  if (!tabButtons.length) return;
+
+  activeTab = tab;
+
+  tabButtons.forEach((button) => {
+    const isActive = button.dataset.adminTab === tab;
+    button.classList.toggle('active', isActive);
+    button.setAttribute('aria-selected', isActive ? 'true' : 'false');
+    button.setAttribute('tabindex', isActive ? '0' : '-1');
+  });
+
+  tabPanels.forEach((panel) => {
+    panel.hidden = panel.dataset.adminPanel !== tab;
+  });
+
+  try {
+    sessionStorage.setItem('evoq_admin_tab', tab);
+  } catch (error) {
+    // ignore storage errors
+  }
+
+  if (focusButton) {
+    const button = tabButtons.find((btn) => btn.dataset.adminTab === tab);
+    if (button) {
+      button.focus();
+    }
+  }
+}
+
+
 function showStatus(message, type = 'info') {
   if (!statusBar) return;
   statusBar.textContent = message;
@@ -445,4 +530,12 @@ function escapeHtml(value) {
     .replace(/"/g, '&quot;')
     .replace(/'/g, '&#39;');
 }
+
+
+
+
+
+
+
+
 
