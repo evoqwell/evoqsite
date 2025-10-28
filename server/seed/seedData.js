@@ -6,6 +6,7 @@ export const products = [
     priceCents: 8500,
     image: '/Tirzepatide.png',
     category: 'peptides',
+    coa: '/COAs/Tirzepatide COA.pdf',
     stock: 999,
     isActive: true
   },
@@ -16,6 +17,7 @@ export const products = [
     priceCents: 11000,
     image: '/Tirzepatide.png',
     category: 'peptides',
+    coa: '/COAs/Tirzepatide COA.pdf',
     stock: 999,
     isActive: true
   },
@@ -46,6 +48,7 @@ export const products = [
     priceCents: 4000,
     image: '/sermorelin.png',
     category: 'peptides',
+    coa: '/COAs/Sermorelin COA.pdf',
     stock: 999,
     isActive: true
   },
@@ -56,6 +59,7 @@ export const products = [
     priceCents: 8500,
     image: '/sermorelin.png',
     category: 'peptides',
+    coa: '/COAs/Sermorelin COA.pdf',
     stock: 999,
     isActive: true
   },
@@ -66,6 +70,7 @@ export const products = [
     priceCents: 3500,
     image: '/GHK-Cu.png',
     category: 'peptides',
+    coa: '/COAs/GHK-CU COA.pdf',
     stock: 999,
     isActive: true
   },
@@ -76,6 +81,7 @@ export const products = [
     priceCents: 6000,
     image: '/GHK-Cu.png',
     category: 'peptides',
+    coa: '/COAs/GHK-CU COA.pdf',
     stock: 999,
     isActive: true
   },
@@ -106,6 +112,7 @@ export const products = [
     priceCents: 1500,
     image: '/BAC water.png',
     category: 'supplies',
+    coa: '/COAs/BAC COA.pdf',
     stock: 999,
     isActive: true
   },

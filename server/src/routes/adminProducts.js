@@ -14,6 +14,7 @@ const productSchema = z.object({
   price: z.number().positive(),
   image: z.string().trim().optional().default(''),
   category: z.string().trim().optional().default(''),
+  coa: z.string().trim().optional().default(''),
   stock: z.number().int().nonnegative().optional().default(0),
   isActive: z.boolean().optional().default(true)
 });
@@ -33,6 +34,7 @@ router.get('/', async (req, res, next) => {
         price: Number((product.priceCents / 100).toFixed(2)),
         image: product.image,
         category: product.category,
+        coa: product.coa,
         stock: product.stock,
         isActive: product.isActive
       }))
@@ -57,6 +59,7 @@ router.post('/', async (req, res, next) => {
       priceCents: Math.round(data.price * 100),
       image: data.image,
       category: data.category,
+      coa: data.coa,
       stock: data.stock,
       isActive: data.isActive
     });
@@ -68,6 +71,7 @@ router.post('/', async (req, res, next) => {
       price: Number((product.priceCents / 100).toFixed(2)),
       image: product.image,
       category: product.category,
+      coa: product.coa,
       stock: product.stock,
       isActive: product.isActive
     });
@@ -110,6 +114,7 @@ router.put('/:sku', async (req, res, next) => {
       price: Number((product.priceCents / 100).toFixed(2)),
       image: product.image,
       category: product.category,
+      coa: product.coa,
       stock: product.stock,
       isActive: product.isActive
     });

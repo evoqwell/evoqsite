@@ -349,6 +349,38 @@ img {
   box-shadow: none;
 }
 
+/* COA Button Styles */
+.product-coa {
+  margin: 0.75rem 0;
+}
+
+.btn-coa {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.5rem 1rem;
+  background-color: transparent;
+  color: var(--stone);
+  border: 1px solid var(--stone);
+  border-radius: 4px;
+  text-decoration: none;
+  font-size: 0.9rem;
+  font-weight: 500;
+  transition: all 0.3s ease;
+}
+
+.btn-coa:hover {
+  background-color: var(--stone);
+  color: var(--bone);
+  transform: translateY(-2px);
+  box-shadow: 0 2px 4px rgba(47, 42, 37, 0.2);
+}
+
+.btn-coa svg {
+  width: 16px;
+  height: 16px;
+}
+
 .cta-container {
   text-align: center;
   margin-top: 2rem;

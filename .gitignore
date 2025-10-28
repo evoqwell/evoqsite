@@ -20,5 +20,14 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
-.env
 .claude
+
+# Environment files
+.env
+.env.local
+.env.production
+.env.development
+.env.test
+*.env
+server/.env
+server/.env.*

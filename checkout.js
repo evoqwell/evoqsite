@@ -1,5 +1,6 @@
 import { fetchPromoCode, createOrder, fetchProducts } from './lib/api.js';
 import { getCart, clearCart, updateQuantity, removeFromCart } from './lib/cart.js';
+import { escapeHtml, sanitizeProductId, sanitizeCurrency } from './lib/sanitizer.js';
 
 let appliedPromo = null;
 let shippingRate = 10;
@@ -39,27 +40,69 @@ function displayCartItems() {
 
   if (emptyMessage) emptyMessage.style.display = 'none';
 
-  cartContainer.innerHTML = cart
-    .map(
-      (item) => `
-      <div class="cart-item" data-id="${item.id}">
-        <div class="cart-item-info">
-          <h4>${item.name}</h4>
-          <p class="cart-item-price">$${Number(item.price).toFixed(2)}</p>
-        </div>
-        <div class="cart-item-controls">
-          <button class="btn-quantity" data-id="${item.id}" data-action="decrease">-</button>
-          <span class="item-quantity">${item.quantity}</span>
-          <button class="btn-quantity" data-id="${item.id}" data-action="increase">+</button>
-          <button class="btn-remove" data-id="${item.id}">Remove</button>
-        </div>
-        <div class="cart-item-total">
-          $${(Number(item.price) * item.quantity).toFixed(2)}
-        </div>
-      </div>
-    `
-    )
-    .join('');
+  // Clear container first
+  cartContainer.innerHTML = '';
+
+  // Build cart items safely using DOM methods
+  cart.forEach((item) => {
+    const itemDiv = document.createElement('div');
+    itemDiv.className = 'cart-item';
+    itemDiv.dataset.id = sanitizeProductId(item.id);
+
+    // Create cart item info
+    const infoDiv = document.createElement('div');
+    infoDiv.className = 'cart-item-info';
+
+    const nameEl = document.createElement('h4');
+    nameEl.textContent = item.name; // Safe: using textContent
+    infoDiv.appendChild(nameEl);
+
+    const priceEl = document.createElement('p');
+    priceEl.className = 'cart-item-price';
+    priceEl.textContent = `$${sanitizeCurrency(item.price).toFixed(2)}`;
+    infoDiv.appendChild(priceEl);
+
+    // Create controls
+    const controlsDiv = document.createElement('div');
+    controlsDiv.className = 'cart-item-controls';
+
+    const decreaseBtn = document.createElement('button');
+    decreaseBtn.className = 'btn-quantity';
+    decreaseBtn.dataset.id = sanitizeProductId(item.id);
+    decreaseBtn.dataset.action = 'decrease';
+    decreaseBtn.textContent = '-';
+    controlsDiv.appendChild(decreaseBtn);
+
+    const quantitySpan = document.createElement('span');
+    quantitySpan.className = 'item-quantity';
+    quantitySpan.textContent = item.quantity;
+    controlsDiv.appendChild(quantitySpan);
+
+    const increaseBtn = document.createElement('button');
+    increaseBtn.className = 'btn-quantity';
+    increaseBtn.dataset.id = sanitizeProductId(item.id);
+    increaseBtn.dataset.action = 'increase';
+    increaseBtn.textContent = '+';
+    controlsDiv.appendChild(increaseBtn);
+
+    const removeBtn = document.createElement('button');
+    removeBtn.className = 'btn-remove';
+    removeBtn.dataset.id = sanitizeProductId(item.id);
+    removeBtn.textContent = 'Remove';
+    controlsDiv.appendChild(removeBtn);
+
+    // Create total
+    const totalDiv = document.createElement('div');
+    totalDiv.className = 'cart-item-total';
+    totalDiv.textContent = `$${(sanitizeCurrency(item.price) * item.quantity).toFixed(2)}`;
+
+    // Append all to item
+    itemDiv.appendChild(infoDiv);
+    itemDiv.appendChild(controlsDiv);
+    itemDiv.appendChild(totalDiv);
+
+    cartContainer.appendChild(itemDiv);
+  });
 
   document.querySelectorAll('.btn-quantity').forEach((btn) => {
     btn.addEventListener('click', handleQuantityChange);

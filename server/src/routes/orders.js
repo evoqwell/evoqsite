@@ -1,3 +1,4 @@
+import crypto from 'crypto';
 import { Router } from 'express';
 import { Product } from '../models/Product.js';
 import { PromoCode } from '../models/PromoCode.js';
@@ -7,14 +8,27 @@ import { calculateOrderTotals } from '../utils/orderTotals.js';
 import { config } from '../config/env.js';
 import { sendOrderEmails } from '../services/emailService.js';
 import { centsToDollars } from '../utils/money.js';
+import { orderLimiter, logSecurityEvent } from '../middleware/security.js';
 
 const router = Router();
 
-router.post('/', async (req, res, next) => {
+router.post('/', orderLimiter, async (req, res, next) => {
   try {
+    // Log order attempt for security monitoring
+    logSecurityEvent('ORDER_ATTEMPT', {
+      ip: req.ip,
+      items: req.body.items?.length || 0,
+      email: req.body.customer?.email
+    }, req);
+
     const payload = validateOrderPayload(req.body);
 
-    const uniqueProductIds = [...new Set(payload.items.map((item) => item.productId))];
+    const quantityBySku = new Map();
+    for (const item of payload.items) {
+      quantityBySku.set(item.productId, (quantityBySku.get(item.productId) || 0) + item.quantity);
+    }
+
+    const uniqueProductIds = [...quantityBySku.keys()];
     const products = await Product.find({ sku: { $in: uniqueProductIds }, isActive: true }).lean();
 
     if (products.length !== uniqueProductIds.length) {
@@ -22,10 +36,25 @@ router.post('/', async (req, res, next) => {
     }
 
     const productMap = new Map(products.map((product) => [product.sku, product]));
-    const cartItems = payload.items.map((item) => ({
-      product: productMap.get(item.productId),
-      quantity: item.quantity
-    }));
+    const cartItems = [];
+
+    for (const [productId, quantity] of quantityBySku.entries()) {
+      const product = productMap.get(productId);
+      const stock = typeof product.stock === 'number' ? product.stock : null;
+
+      if (stock !== null) {
+        if (stock <= 0) {
+          return res.status(400).json({ error: `${product.name} is currently out of stock.` });
+        }
+        if (quantity > stock) {
+          return res
+            .status(400)
+            .json({ error: `Only ${stock} unit${stock === 1 ? '' : 's'} of ${product.name} are available.` });
+        }
+      }
+
+      cartItems.push({ product, quantity });
+    }
 
     let promo = null;
     if (payload.promoCode) {
@@ -119,9 +148,7 @@ router.post('/', async (req, res, next) => {
 function generateOrderNumber() {
   const now = new Date();
   const datePart = now.toISOString().slice(0, 10).replace(/-/g, '');
-  const randomPart = Math.floor(Math.random() * 1000)
-    .toString()
-    .padStart(3, '0');
+  const randomPart = crypto.randomBytes(4).toString('hex').toUpperCase();
   return `EVOQ-${datePart}-${randomPart}`;
 }
 

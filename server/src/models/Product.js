@@ -30,6 +30,10 @@ const productSchema = new mongoose.Schema(
       type: String,
       trim: true
     },
+    coa: {
+      type: String,
+      trim: true
+    },
     stock: {
       type: Number,
       default: 0,

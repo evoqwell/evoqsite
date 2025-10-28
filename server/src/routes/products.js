@@ -13,6 +13,7 @@ router.get('/', async (req, res, next) => {
       description: product.description,
       image: product.image,
       category: product.category,
+      coa: product.coa,
       stock: product.stock,
       price: Number((product.priceCents / 100).toFixed(2))
     }));

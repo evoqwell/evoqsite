@@ -1,9 +1,10 @@
 import { Router } from 'express';
 import { PromoCode } from '../models/PromoCode.js';
+import { promoLimiter, logSecurityEvent } from '../middleware/security.js';
 
 const router = Router();
 
-router.get('/:code', async (req, res, next) => {
+router.get('/:code', promoLimiter, async (req, res, next) => {
   try {
     const code = req.params.code.trim().toUpperCase();
     if (!code) {

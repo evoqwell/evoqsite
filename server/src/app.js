@@ -1,5 +1,13 @@
 ﻿import express from 'express';
 import cors from 'cors';
+import {
+  helmetMiddleware,
+  generalLimiter,
+  authLimiter,
+  mongoSanitizeMiddleware,
+  sanitizeBody,
+  additionalSecurityHeaders
+} from './middleware/security.js';
 import productsRouter from './routes/products.js';
 import promosRouter from './routes/promos.js';
 import ordersRouter from './routes/orders.js';
@@ -9,14 +17,42 @@ import adminOrdersRouter from './routes/adminOrders.js';
 
 const app = express();
 
+// CORS configuration for production
+const allowedOrigins = [
+  'https://www.evoqwell.shop',
+  'https://evoqwell.shop',
+  'https://evoqsite-production.up.railway.app',
+  'http://localhost:5173', // Development only
+  'http://localhost:3000'  // Development only
+];
+
 app.use(
   cors({
-    origin: true,
-    credentials: false,
-    allowedHeaders: ['Content-Type', 'X-Admin-Token']
+    origin: function(origin, callback) {
+      // Allow requests with no origin (like mobile apps or curl requests)
+      if (!origin) return callback(null, true);
+
+      if (allowedOrigins.includes(origin)) {
+        callback(null, true);
+      } else {
+        callback(new Error('Not allowed by CORS'));
+      }
+    },
+    credentials: true,
+    allowedHeaders: ['Content-Type', 'X-Admin-Token'],
+    methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS']
   })
 );
-app.use(express.json());
+
+// Security middleware
+app.use(helmetMiddleware);
+app.use(additionalSecurityHeaders);
+app.use(mongoSanitizeMiddleware);
+app.use(express.json({ limit: '10mb' })); // Limit payload size
+app.use(sanitizeBody); // Sanitize all request bodies
+
+// Apply general rate limiting to all routes
+app.use(generalLimiter);
 
 app.get('/api/health', (req, res) => {
   res.json({ status: 'ok' });

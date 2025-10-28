@@ -133,8 +133,8 @@ function renderProducts(products) {
     form.dataset.sku = product.sku;
     form.innerHTML = `
       <header class="admin-card-header">
-        <h3>${product.name}</h3>
-        <span class="admin-sku">SKU: ${product.sku}</span>
+        <h3>${escapeHtml(product.name)}</h3>
+        <span class="admin-sku">SKU: ${escapeHtml(product.sku)}</span>
       </header>
       <div class="admin-card-body">
         <label>
@@ -162,6 +162,10 @@ function renderProducts(products) {
         <label>
           Category
           <input type="text" name="category" value="${escapeHtml(product.category || '')}">
+        </label>
+        <label>
+          COA File Path (e.g., /COAs/ProductName COA.pdf)
+          <input type="text" name="coa" value="${escapeHtml(product.coa || '')}" placeholder="/COAs/filename.pdf">
         </label>
         <label class="admin-inline">
           <input type="checkbox" name="isActive" ${product.isActive ? 'checked' : ''}>
@@ -196,7 +200,7 @@ function renderPromos(promos) {
     form.dataset.code = promo.code;
     form.innerHTML = `
       <header class="admin-card-header">
-        <h3>${promo.code}</h3>
+        <h3>${escapeHtml(promo.code)}</h3>
       </header>
       <div class="admin-card-body">
         <label>
@@ -307,6 +311,7 @@ async function handleCreateProduct(event) {
     price: parseFloat(formData.get('price')),
     image: formData.get('image').trim(),
     category: formData.get('category').trim(),
+    coa: formData.get('coa').trim(),
     stock: parseInt(formData.get('stock'), 10) || 0,
     isActive: formData.get('isActive') === 'on'
   };
@@ -336,6 +341,7 @@ async function handleUpdateProduct(event, sku) {
     price: parseFloat(formData.get('price')),
     image: formData.get('image').trim(),
     category: formData.get('category').trim(),
+    coa: formData.get('coa').trim(),
     stock: parseInt(formData.get('stock'), 10) || 0,
     isActive: formData.get('isActive') === 'on'
   };

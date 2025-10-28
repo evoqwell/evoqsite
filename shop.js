@@ -42,33 +42,100 @@ function createProductCard(product) {
   const stockLabel = isOutOfStock ? 'Out of Stock' : 'In Stock';
 
   card.className = 'product-card fade-in';
-  card.setAttribute('data-product-id', product.id);
+  card.dataset.productId = product.id;
   if (isOutOfStock) {
     card.classList.add('out-of-stock');
   }
 
-  card.innerHTML = `
-    <div class="product-image-wrapper">
-      ${isOutOfStock ? '<span class="product-ribbon">Out of Stock</span>' : ''}
-      <img src="${product.image}" alt="${product.name}" class="product-image" loading="lazy">
-    </div>
-    <div class="product-info">
-      <h3 class="product-name">${product.name}</h3>
-      <p class="product-description">${product.description || ''}</p>
-      <div class="product-footer">
-        <span class="product-price">$${Number(product.price).toFixed(2)}</span>
-        <span class="product-stock-status ${isOutOfStock ? 'sold-out' : 'in-stock'}">${stockLabel}</span>
-        <button class="btn-add-cart" type="button" ${isOutOfStock ? 'disabled aria-disabled="true"' : ''}>
-          ${isOutOfStock ? 'Out of Stock' : 'Add to Cart'}
-        </button>
-      </div>
-    </div>
-  `;
+  const imageWrapper = document.createElement('div');
+  imageWrapper.className = 'product-image-wrapper';
 
-  const button = card.querySelector('.btn-add-cart');
-  if (!isOutOfStock) {
+  if (isOutOfStock) {
+    const ribbon = document.createElement('span');
+    ribbon.className = 'product-ribbon';
+    ribbon.textContent = 'Out of Stock';
+    imageWrapper.appendChild(ribbon);
+  }
+
+  const image = document.createElement('img');
+  image.className = 'product-image';
+  image.loading = 'lazy';
+  image.src = product.image;
+  image.alt = product.name;
+  imageWrapper.appendChild(image);
+
+  const info = document.createElement('div');
+  info.className = 'product-info';
+
+  const title = document.createElement('h3');
+  title.className = 'product-name';
+  title.textContent = product.name;
+  info.appendChild(title);
+
+  if (product.description) {
+    const description = document.createElement('p');
+    description.className = 'product-description';
+    description.textContent = product.description;
+    info.appendChild(description);
+  }
+
+  if (product.coa) {
+    const coaWrapper = document.createElement('div');
+    coaWrapper.className = 'product-coa';
+
+    const coaLink = document.createElement('a');
+    coaLink.className = 'btn-coa';
+    coaLink.href = product.coa;
+    coaLink.target = '_blank';
+    coaLink.rel = 'noopener noreferrer';
+
+    const icon = document.createElement('span');
+    icon.innerHTML = `
+      <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+        <polyline points="14 2 14 8 20 8"></polyline>
+        <line x1="16" y1="13" x2="8" y2="13"></line>
+        <line x1="16" y1="17" x2="8" y2="17"></line>
+        <polyline points="10 9 9 9 8 9"></polyline>
+      </svg>
+    `;
+    icon.setAttribute('aria-hidden', 'true');
+    coaLink.appendChild(icon);
+    coaLink.appendChild(document.createTextNode(' View COA'));
+
+    coaWrapper.appendChild(coaLink);
+    info.appendChild(coaWrapper);
+  }
+
+  const footer = document.createElement('div');
+  footer.className = 'product-footer';
+
+  const priceEl = document.createElement('span');
+  priceEl.className = 'product-price';
+  priceEl.textContent = `$${Number(product.price).toFixed(2)}`;
+  footer.appendChild(priceEl);
+
+  const stockStatus = document.createElement('span');
+  stockStatus.className = `product-stock-status ${isOutOfStock ? 'sold-out' : 'in-stock'}`;
+  stockStatus.textContent = stockLabel;
+  footer.appendChild(stockStatus);
+
+  const button = document.createElement('button');
+  button.className = 'btn-add-cart';
+  button.type = 'button';
+  if (isOutOfStock) {
+    button.disabled = true;
+    button.setAttribute('aria-disabled', 'true');
+    button.textContent = 'Out of Stock';
+  } else {
+    button.textContent = 'Add to Cart';
     button.addEventListener('click', () => handleAddToCart(product));
   }
+  footer.appendChild(button);
+
+  info.appendChild(footer);
+  card.appendChild(imageWrapper);
+  card.appendChild(info);
 
   return card;
 }
