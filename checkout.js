@@ -270,6 +270,7 @@ function createCheckoutFormValidator(form) {
   const validate = ({ revealErrors = false, focusInvalid = false } = {}) => {
     let allValid = true;
     let firstInvalidField = null;
+    const fieldStatuses = [];
 
     requiredFields.forEach((field) => {
       if (revealErrors) {
@@ -280,6 +281,14 @@ function createCheckoutFormValidator(form) {
       const hasValue = trimmedValue.length > 0;
       const fieldValid = hasValue && field.checkValidity();
       const shouldShowError = revealErrors || touchedFields.has(field);
+
+      // Log field validation status for debugging
+      fieldStatuses.push({
+        name: field.name || field.id,
+        valid: fieldValid,
+        hasValue: hasValue,
+        value: trimmedValue
+      });
 
       if (shouldShowError) {
         field.classList.toggle('is-invalid', !fieldValid);
@@ -294,28 +303,58 @@ function createCheckoutFormValidator(form) {
       allValid = allValid && fieldValid;
     });
 
+    // Always update button state based on validation
     if (submitBtn) {
       submitBtn.disabled = !allValid;
+
+      // Add visual indicator to button
+      if (allValid) {
+        submitBtn.classList.remove('btn-disabled');
+        submitBtn.setAttribute('aria-disabled', 'false');
+      } else {
+        submitBtn.classList.add('btn-disabled');
+        submitBtn.setAttribute('aria-disabled', 'true');
+      }
     }
 
     if (!allValid && focusInvalid && firstInvalidField) {
       firstInvalidField.focus();
+      firstInvalidField.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }
+
+    // Log validation summary for debugging
+    if (revealErrors && !allValid) {
+      console.log('Form validation failed:', fieldStatuses.filter(f => !f.valid));
     }
 
     return allValid;
   };
 
   requiredFields.forEach((field) => {
+    // Validate on input (real-time)
     field.addEventListener('input', () => {
       validate();
     });
 
+    // Show errors on blur
     field.addEventListener('blur', () => {
       touchedFields.add(field);
       validate({ revealErrors: true });
     });
+
+    // Prevent form submission on Enter key if invalid
+    field.addEventListener('keypress', (e) => {
+      if (e.key === 'Enter') {
+        const isValid = validate({ revealErrors: true });
+        if (!isValid) {
+          e.preventDefault();
+          console.log('Form submission blocked: validation failed');
+        }
+      }
+    });
   });
 
+  // Initial validation to set button state
   validate();
 
   return {
@@ -326,6 +365,13 @@ function createCheckoutFormValidator(form) {
         field.classList.remove('is-invalid');
       });
       validate();
+    },
+    getFieldStatuses() {
+      return requiredFields.map(field => ({
+        name: field.name || field.id,
+        value: field.value.trim(),
+        valid: field.value.trim().length > 0 && field.checkValidity()
+      }));
     }
   };
 }
@@ -333,7 +379,30 @@ function createCheckoutFormValidator(form) {
 async function handleCheckoutSubmit(event) {
   event.preventDefault();
 
+  // Double-check form validation
   if (checkoutFormValidator && !checkoutFormValidator.validate({ revealErrors: true, focusInvalid: true })) {
+    console.warn('Order submission blocked: Form validation failed');
+    return;
+  }
+
+  // Additional safety check: Verify all required fields have values
+  const form = event.target;
+  const requiredFields = form.querySelectorAll('input[required]');
+  let allFieldsFilled = true;
+  const missingFields = [];
+
+  requiredFields.forEach(field => {
+    const value = field.value.trim();
+    if (!value || !field.checkValidity()) {
+      allFieldsFilled = false;
+      missingFields.push(field.name || field.id);
+      field.classList.add('is-invalid');
+    }
+  });
+
+  if (!allFieldsFilled) {
+    console.error('Order submission blocked: Missing required fields:', missingFields);
+    alert('Please fill in all required fields before submitting your order.');
     return;
   }
 
@@ -343,7 +412,6 @@ async function handleCheckoutSubmit(event) {
     return;
   }
 
-  const form = event.target;
   const submitBtn = document.getElementById('submit-order');
   const responseDiv = document.getElementById('checkout-response');
 
