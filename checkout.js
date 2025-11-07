@@ -5,6 +5,7 @@ import { sendOrderEmails } from './lib/email.js';
 
 let appliedPromo = null;
 let shippingRate = 10;
+let checkoutFormValidator = null;
 
 document.addEventListener('DOMContentLoaded', async () => {
   await hydrateCheckoutSettings();
@@ -257,11 +258,84 @@ function initCheckoutForm() {
   const form = document.getElementById('checkout-form');
   if (!form) return;
 
+  checkoutFormValidator = createCheckoutFormValidator(form);
   form.addEventListener('submit', handleCheckoutSubmit);
+}
+
+function createCheckoutFormValidator(form) {
+  const submitBtn = document.getElementById('submit-order');
+  const requiredFields = Array.from(form.querySelectorAll('input[required]'));
+  const touchedFields = new WeakSet();
+
+  const validate = ({ revealErrors = false, focusInvalid = false } = {}) => {
+    let allValid = true;
+    let firstInvalidField = null;
+
+    requiredFields.forEach((field) => {
+      if (revealErrors) {
+        touchedFields.add(field);
+      }
+
+      const trimmedValue = field.value.trim();
+      const hasValue = trimmedValue.length > 0;
+      const fieldValid = hasValue && field.checkValidity();
+      const shouldShowError = revealErrors || touchedFields.has(field);
+
+      if (shouldShowError) {
+        field.classList.toggle('is-invalid', !fieldValid);
+      } else if (fieldValid) {
+        field.classList.remove('is-invalid');
+      }
+
+      if (!fieldValid && !firstInvalidField) {
+        firstInvalidField = field;
+      }
+
+      allValid = allValid && fieldValid;
+    });
+
+    if (submitBtn) {
+      submitBtn.disabled = !allValid;
+    }
+
+    if (!allValid && focusInvalid && firstInvalidField) {
+      firstInvalidField.focus();
+    }
+
+    return allValid;
+  };
+
+  requiredFields.forEach((field) => {
+    field.addEventListener('input', () => {
+      validate();
+    });
+
+    field.addEventListener('blur', () => {
+      touchedFields.add(field);
+      validate({ revealErrors: true });
+    });
+  });
+
+  validate();
+
+  return {
+    validate,
+    reset() {
+      requiredFields.forEach((field) => {
+        touchedFields.delete(field);
+        field.classList.remove('is-invalid');
+      });
+      validate();
+    }
+  };
 }
 
 async function handleCheckoutSubmit(event) {
   event.preventDefault();
+
+  if (checkoutFormValidator && !checkoutFormValidator.validate({ revealErrors: true, focusInvalid: true })) {
+    return;
+  }
 
   const cart = getCart();
   if (!cart.length) {
@@ -320,6 +394,7 @@ async function handleCheckoutSubmit(event) {
     resetPromoUI();
     displayCartItems();
     form.reset();
+    checkoutFormValidator?.reset();
 
     showOrderConfirmation(order, { emailError });
 
