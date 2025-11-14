@@ -651,6 +651,7 @@ async function handleUpdateOrderStatus(orderNumber, status) {
   try {
     await updateAdminOrderStatus(adminToken, orderNumber, status);
     showStatus(`Order ${orderNumber} status updated to ${status}.`);
+    await loadDashboard(); // Reload to show the updated status
   } catch (error) {
     console.error('[admin] Failed to update order status', error);
     showStatus(error.message || 'Failed to update order status.', 'error');
