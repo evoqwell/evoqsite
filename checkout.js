@@ -1,11 +1,12 @@
 import { fetchPromoCode, createOrder, fetchProducts } from './lib/api.js';
-import { getCart, clearCart, updateQuantity, removeFromCart } from './lib/cart.js';
+import { getCart, clearCart, updateQuantity, removeFromCart, addToCart } from './lib/cart.js';
 import { escapeHtml, sanitizeProductId, sanitizeCurrency } from './lib/sanitizer.js';
 import { sendOrderEmails } from './lib/email.js';
 
 let appliedPromo = null;
 let shippingRate = 10;
 let checkoutFormValidator = null;
+let bacWaterProduct = null; // Store BAC water product info
 
 document.addEventListener('DOMContentLoaded', async () => {
   await hydrateCheckoutSettings();
@@ -17,9 +18,18 @@ document.addEventListener('DOMContentLoaded', async () => {
 
 async function hydrateCheckoutSettings() {
   try {
-    const { meta } = await fetchProducts();
+    const { products, meta } = await fetchProducts();
     if (meta && typeof meta.shippingFlatRate === 'number') {
       shippingRate = meta.shippingFlatRate;
+    }
+
+    // Find BAC water product dynamically (matches "BAC" in the name, case-insensitive)
+    bacWaterProduct = products.find(product =>
+      product.name && product.name.toLowerCase().includes('bac')
+    );
+
+    if (!bacWaterProduct) {
+      console.warn('BAC water product not found in catalog');
     }
   } catch (error) {
     console.warn('Failed to load storefront settings. Falling back to default shipping.', error);
@@ -412,6 +422,16 @@ async function handleCheckoutSubmit(event) {
     return;
   }
 
+  // Check if BAC water is in cart (only if we found a BAC water product and user hasn't declined)
+  if (bacWaterProduct && !bacWaterDeclined) {
+    const hasBacWater = cart.some(item => item.id === bacWaterProduct.id);
+    if (!hasBacWater) {
+      // Show BAC water reminder modal instead of proceeding
+      showBacWaterReminderModal(event);
+      return;
+    }
+  }
+
   const submitBtn = document.getElementById('submit-order');
   const responseDiv = document.getElementById('checkout-response');
 
@@ -459,6 +479,7 @@ async function handleCheckoutSubmit(event) {
 
     clearCart();
     appliedPromo = null;
+    bacWaterDeclined = false; // Reset the declined flag after successful checkout
     resetPromoUI();
     displayCartItems();
     form.reset();
@@ -601,4 +622,180 @@ function showOrderConfirmation(order, { emailError } = {}) {
 
   const modal = new bootstrap.Modal(document.getElementById('orderConfirmationModal'));
   modal.show();
+}
+
+// BAC Water Reminder Modal Functions
+let pendingCheckoutEvent = null;
+let bacWaterDeclined = false; // Track if user declined BAC water this session
+
+function showBacWaterReminderModal(checkoutEvent) {
+  pendingCheckoutEvent = checkoutEvent;
+
+  // Update modal content with dynamic product data
+  updateBacWaterModalContent();
+
+  const modal = new bootstrap.Modal(document.getElementById('bacWaterReminderModal'));
+
+  // Initialize quantity selector
+  initBacWaterQuantitySelector();
+
+  // Setup modal button handlers
+  setupBacWaterModalHandlers(modal);
+
+  modal.show();
+}
+
+function updateBacWaterModalContent() {
+  if (!bacWaterProduct) return;
+
+  // Update product name
+  const productNameEl = document.querySelector('#bacWaterReminderModal h5');
+  if (productNameEl) {
+    productNameEl.textContent = bacWaterProduct.name;
+  }
+
+  // Update product description
+  const productDiv = document.querySelector('#bacWaterReminderModal .bac-water-product');
+  if (productDiv) {
+    const descParagraphs = productDiv.querySelectorAll('p');
+    if (descParagraphs[0]) {
+      descParagraphs[0].textContent = bacWaterProduct.description || 'Bacteriostatic water for reconstitution';
+    }
+    if (descParagraphs[1]) {
+      descParagraphs[1].textContent = `$${bacWaterProduct.price.toFixed(2)}`;
+    }
+  }
+
+  // Update product image if available
+  const productImgEl = document.querySelector('#bacWaterReminderModal .bac-water-product img');
+  if (productImgEl && bacWaterProduct.image) {
+    productImgEl.src = bacWaterProduct.image;
+    productImgEl.alt = bacWaterProduct.name;
+  }
+}
+
+function initBacWaterQuantitySelector() {
+  const quantityInput = document.getElementById('bacWaterQuantity');
+  const decrementBtn = document.getElementById('bacWaterDecrement');
+  const incrementBtn = document.getElementById('bacWaterIncrement');
+
+  if (!quantityInput || !decrementBtn || !incrementBtn) return;
+
+  // Reset to 1
+  quantityInput.value = 1;
+
+  // Remove old listeners if any
+  const newDecrementBtn = decrementBtn.cloneNode(true);
+  const newIncrementBtn = incrementBtn.cloneNode(true);
+  decrementBtn.parentNode.replaceChild(newDecrementBtn, decrementBtn);
+  incrementBtn.parentNode.replaceChild(newIncrementBtn, incrementBtn);
+
+  // Add new listeners
+  newDecrementBtn.addEventListener('click', () => {
+    const currentValue = parseInt(quantityInput.value) || 1;
+    if (currentValue > 1) {
+      quantityInput.value = currentValue - 1;
+    }
+  });
+
+  newIncrementBtn.addEventListener('click', () => {
+    const currentValue = parseInt(quantityInput.value) || 1;
+    if (currentValue < 99) {
+      quantityInput.value = currentValue + 1;
+    }
+  });
+
+  // Handle direct input
+  quantityInput.addEventListener('input', () => {
+    let value = parseInt(quantityInput.value) || 1;
+    if (value < 1) value = 1;
+    if (value > 99) value = 99;
+    quantityInput.value = value;
+  });
+}
+
+function setupBacWaterModalHandlers(modal) {
+  const addBtn = document.getElementById('bacWaterAdd');
+  const skipBtn = document.getElementById('bacWaterSkip');
+
+  if (!addBtn || !skipBtn) return;
+
+  // Remove old listeners
+  const newAddBtn = addBtn.cloneNode(true);
+  const newSkipBtn = skipBtn.cloneNode(true);
+  addBtn.parentNode.replaceChild(newAddBtn, addBtn);
+  skipBtn.parentNode.replaceChild(newSkipBtn, skipBtn);
+
+  // Add BAC water to cart and continue
+  newAddBtn.addEventListener('click', () => {
+    if (!bacWaterProduct) {
+      console.error('BAC water product data not available');
+      return;
+    }
+
+    const quantityInput = document.getElementById('bacWaterQuantity');
+    const quantity = parseInt(quantityInput.value) || 1;
+
+    // Add BAC water to cart using dynamic product data
+    addToCart(
+      bacWaterProduct.id,
+      bacWaterProduct.name,
+      bacWaterProduct.price,
+      quantity
+    );
+
+    // Reset the declined flag since they're adding it
+    bacWaterDeclined = false;
+
+    // Update cart display
+    displayCartItems();
+
+    // Hide modal
+    modal.hide();
+
+    // Clear pending event - let user review cart and manually submit
+    pendingCheckoutEvent = null;
+
+    // Show a subtle notification that the item was added
+    const submitBtn = document.getElementById('submit-order');
+    if (submitBtn) {
+      const originalText = submitBtn.textContent;
+      submitBtn.textContent = 'BAC Water Added - Review & Place Order';
+      submitBtn.classList.add('btn-success');
+
+      // Reset button text after 3 seconds
+      setTimeout(() => {
+        submitBtn.textContent = originalText;
+        submitBtn.classList.remove('btn-success');
+      }, 3000);
+    }
+  });
+
+  // Skip and continue without BAC water
+  newSkipBtn.addEventListener('click', () => {
+    // Set flag to remember they declined
+    bacWaterDeclined = true;
+
+    // Store the event before clearing
+    const eventToProcess = pendingCheckoutEvent;
+
+    modal.hide();
+
+    // Show notification that checkout is proceeding
+    const submitBtn = document.getElementById('submit-order');
+    if (submitBtn) {
+      submitBtn.textContent = 'Processing without BAC Water...';
+      submitBtn.disabled = true;
+    }
+
+    // Auto-submit the form after modal closes
+    if (eventToProcess) {
+      setTimeout(() => {
+        handleCheckoutSubmit(eventToProcess);
+      }, 100);
+    }
+
+    // Clear pending event after using it
+    pendingCheckoutEvent = null;
+  });
 }

@@ -220,6 +220,54 @@
         </div>
     </div>
 
+    <!-- BAC Water Reminder Modal -->
+    <div class="modal fade" id="bacWaterReminderModal" tabindex="-1" aria-labelledby="bacWaterReminderModalLabel" aria-hidden="true" data-bs-backdrop="static" data-bs-keyboard="false">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content" style="border: none; border-radius: 16px; overflow: hidden; box-shadow: 0 20px 60px rgba(0,0,0,0.3);">
+                <div class="modal-header" style="background: linear-gradient(135deg, #8A7D6E 0%, #6B5F52 100%); color: #F5F1E9; border-bottom: none; padding: 24px 32px;">
+                    <div>
+                        <h4 class="modal-title mb-1" id="bacWaterReminderModalLabel" style="font-weight: 600; font-size: 1.5rem;">Don't Forget Your BAC Water!</h4>
+                        <p style="margin: 0; opacity: 0.95; font-size: 0.95rem;">Essential for reconstitution</p>
+                    </div>
+                </div>
+                <div class="modal-body" style="padding: 32px; background: #F5F1E9;">
+                    <p style="color: #4A4A4A; margin-bottom: 24px;">
+                        We noticed you don't have BAC Water in your cart. BAC Water is essential for reconstituting peptides safely and maintaining their stability.
+                    </p>
+
+                    <div class="bac-water-product" style="background: white; padding: 16px; border-radius: 8px; margin-bottom: 24px; box-shadow: 0 2px 8px rgba(0,0,0,0.1);">
+                        <div style="display: flex; align-items: center; gap: 16px;">
+                            <img src="/BAC water.png" alt="BAC Water" style="width: 60px; height: 60px; object-fit: cover; border-radius: 8px;">
+                            <div style="flex: 1;">
+                                <h5 style="margin: 0; color: #6B5F52;">BAC Water</h5>
+                                <p style="margin: 0; color: #8A7D6E; font-size: 0.9rem;">Bacteriostatic water for reconstitution</p>
+                                <p style="margin: 4px 0 0 0; font-weight: bold; color: #4A4A4A;">$0.00</p>
+                            </div>
+                        </div>
+
+                        <div style="margin-top: 16px;">
+                            <label style="display: block; margin-bottom: 8px; color: #4A4A4A; font-weight: 500;">Select Quantity:</label>
+                            <div class="quantity-selector" style="display: flex; align-items: center; gap: 8px;">
+                                <button type="button" id="bacWaterDecrement" class="btn btn-outline-secondary" style="width: 40px; height: 40px; padding: 0; font-size: 1.2rem;">-</button>
+                                <input type="number" id="bacWaterQuantity" value="1" min="1" max="99" style="width: 60px; text-align: center; height: 40px; border: 1px solid #dee2e6; border-radius: 4px;">
+                                <button type="button" id="bacWaterIncrement" class="btn btn-outline-secondary" style="width: 40px; height: 40px; padding: 0; font-size: 1.2rem;">+</button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div style="display: flex; gap: 12px; justify-content: flex-end;">
+                        <button type="button" id="bacWaterSkip" class="btn btn-outline-secondary" style="padding: 10px 24px;">
+                            No Thanks, Continue
+                        </button>
+                        <button type="button" id="bacWaterAdd" class="btn" style="background: linear-gradient(135deg, #8A7D6E 0%, #6B5F52 100%); color: white; padding: 10px 24px; border: none;">
+                            Add to Cart & Continue
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <footer role="contentinfo">
         <div class="container">
             <p class="disclaimer">By completing a purchase from EVOQ, the buyer acknowledges that all products are supplied strictly for lawful research purposes. These materials are not manufactured, packaged, or approved for human or animal ingestion, medical treatment, or diagnostic procedures of any kind. The buyer accepts sole responsibility for the handling, storage, use, and distribution of all products. EVOQ assumes no liability and shall be indemnified and held harmless against any and all claims, damages, or losses arising from misuse, unauthorized application, or noncompliance with relevant laws and regulations.</p>

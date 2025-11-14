@@ -18,6 +18,8 @@ let lastLoadedData = {
   promos: [],
   orders: []
 };
+let currentOrderPage = 1;
+const ORDERS_PER_PAGE = 10;
 
 const tabButtons = Array.from(document.querySelectorAll('[data-admin-tab]'));
 const tabPanels = Array.from(document.querySelectorAll('[data-admin-panel]'));
@@ -142,16 +144,48 @@ function renderProducts(products) {
   }
 
   productsContainer.innerHTML = '';
+
+  // Create list container
+  const listContainer = document.createElement('div');
+  listContainer.className = 'admin-list-container';
+
   products.forEach((product) => {
+    const listItem = document.createElement('div');
+    listItem.className = 'admin-list-item';
+    listItem.dataset.sku = product.sku;
+
+    // Create summary section
+    const summary = document.createElement('div');
+    summary.className = 'admin-list-summary';
+
+    const stockBadgeClass = product.stock > 0 ? 'success' : 'danger';
+    const stockText = product.stock > 0 ? `Stock: ${product.stock}` : 'Out of Stock';
+    const activeBadgeClass = product.isActive ? 'success' : '';
+
+    summary.innerHTML = `
+      <div class="admin-list-summary-content">
+        <h3 class="admin-list-title">${escapeHtml(product.name)}</h3>
+        <div class="admin-list-meta">
+          <span>SKU: ${escapeHtml(product.sku)}</span>
+          <span>$${Number(product.price).toFixed(2)}</span>
+          <span class="admin-list-badge ${stockBadgeClass}">${stockText}</span>
+          ${product.isActive ? '<span class="admin-list-badge success">Active</span>' : '<span class="admin-list-badge">Inactive</span>'}
+        </div>
+      </div>
+      <svg class="admin-list-expand-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path>
+      </svg>
+    `;
+
+    // Create details section with form
+    const details = document.createElement('div');
+    details.className = 'admin-list-details';
+
     const form = document.createElement('form');
-    form.className = 'admin-card';
-    form.dataset.sku = product.sku;
+    form.className = 'admin-list-details-form';
     const categoriesValue = escapeHtml(formatCategoriesForInput(product));
+
     form.innerHTML = `
-      <header class="admin-card-header">
-        <h3>${escapeHtml(product.name)}</h3>
-        <span class="admin-sku">SKU: ${escapeHtml(product.sku)}</span>
-      </header>
       <div class="admin-card-body">
         <label>
           Name
@@ -180,7 +214,7 @@ function renderProducts(products) {
           <input type="text" name="categories" value="${categoriesValue}" placeholder="e.g., Skin, Metabolism">
         </label>
         <label>
-          COA File Path (e.g., /COAs/ProductName COA.pdf)
+          COA File Path
           <input type="text" name="coa" value="${escapeHtml(product.coa || '')}" placeholder="/COAs/filename.pdf">
         </label>
         <label class="admin-inline">
@@ -188,17 +222,28 @@ function renderProducts(products) {
           Active
         </label>
       </div>
-      <footer class="admin-card-actions">
+      <footer class="admin-list-actions">
         <button type="submit" class="btn-primary">Save</button>
         <button type="button" class="btn-danger" data-action="delete">Delete</button>
       </footer>
     `;
 
+    // Add event listeners
+    summary.addEventListener('click', () => {
+      listItem.classList.toggle('expanded');
+    });
+
     form.addEventListener('submit', (event) => handleUpdateProduct(event, product.sku));
     const deleteBtn = form.querySelector('[data-action="delete"]');
     deleteBtn.addEventListener('click', () => handleDeleteProduct(product.sku));
-    productsContainer.appendChild(form);
+
+    details.appendChild(form);
+    listItem.appendChild(summary);
+    listItem.appendChild(details);
+    listContainer.appendChild(listItem);
   });
+
+  productsContainer.appendChild(listContainer);
 }
 
 function renderPromos(promos) {
@@ -264,9 +309,53 @@ function renderOrders(orders) {
 
   ordersContainer.innerHTML = '';
 
-  orders.forEach((order) => {
-    const card = document.createElement('div');
-    card.className = 'admin-card';
+  // Calculate pagination
+  const totalOrders = orders.length;
+  const totalPages = Math.ceil(totalOrders / ORDERS_PER_PAGE);
+  const startIndex = (currentOrderPage - 1) * ORDERS_PER_PAGE;
+  const endIndex = Math.min(startIndex + ORDERS_PER_PAGE, totalOrders);
+  const paginatedOrders = orders.slice(startIndex, endIndex);
+
+  // Create list container
+  const listContainer = document.createElement('div');
+  listContainer.className = 'admin-list-container';
+
+  paginatedOrders.forEach((order) => {
+    const listItem = document.createElement('div');
+    listItem.className = 'admin-list-item';
+    listItem.dataset.orderNumber = order.orderNumber;
+
+    // Create summary section
+    const summary = document.createElement('div');
+    summary.className = 'admin-list-summary';
+
+    const statusBadgeClass = {
+      pending_payment: 'warning',
+      paid: 'info',
+      fulfilled: 'success',
+      cancelled: 'danger'
+    }[order.status] || '';
+
+    const statusDisplay = order.status.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
+
+    summary.innerHTML = `
+      <div class="admin-list-summary-content">
+        <h3 class="admin-list-title">Order #${order.orderNumber}</h3>
+        <div class="admin-list-meta">
+          <span>${escapeHtml(order.customer.name)}</span>
+          <span>$${Number(order.totals.total).toFixed(2)}</span>
+          <span>${new Date(order.createdAt).toLocaleDateString()}</span>
+          <span class="admin-list-badge ${statusBadgeClass}">${statusDisplay}</span>
+        </div>
+      </div>
+      <svg class="admin-list-expand-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path>
+      </svg>
+    `;
+
+    // Create details section
+    const details = document.createElement('div');
+    details.className = 'admin-list-details';
 
     const itemsList = order.items
       .map(
@@ -278,38 +367,134 @@ function renderOrders(orders) {
     const statusOptions = ['pending_payment', 'paid', 'fulfilled', 'cancelled']
       .map(
         (status) =>
-          `<option value="${status}" ${order.status === status ? 'selected' : ''}>${status}</option>`
+          `<option value="${status}" ${order.status === status ? 'selected' : ''}>${status.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())}</option>`
       )
       .join('');
 
-    card.innerHTML = `
-      <header class="admin-card-header">
-        <h3>Order ${order.orderNumber}</h3>
-        <time>${new Date(order.createdAt).toLocaleString()}</time>
-      </header>
-      <div class="admin-card-body">
-        <p><strong>Status:</strong>
-          <select data-order-status="${order.orderNumber}">
-            ${statusOptions}
-          </select>
-        </p>
-        <p><strong>Total:</strong> $${Number(order.totals.total).toFixed(2)}</p>
-        <p><strong>Customer:</strong> ${escapeHtml(order.customer.name)} (${escapeHtml(order.customer.email)})</p>
-        <p><strong>Shipping:</strong><br>${escapeHtml(order.customer.address)}<br>${escapeHtml(order.customer.city)}, ${escapeHtml(order.customer.state)} ${escapeHtml(order.customer.zip)}</p>
-        <p><strong>Items:</strong></p>
-        <ul class="admin-order-list">${itemsList}</ul>
-        <p><strong>Promo:</strong> ${order.promoCode || 'N/A'}</p>
-        <p><strong>Venmo Note:</strong> ${escapeHtml(order.venmoNote || '')}</p>
+    details.innerHTML = `
+      <div class="admin-list-details-form">
+        <div class="admin-card-body">
+          <div class="admin-grid">
+            <label>
+              Order Status
+              <select data-order-status="${order.orderNumber}">
+                ${statusOptions}
+              </select>
+            </label>
+            <div>
+              <strong>Order Date:</strong><br>
+              ${new Date(order.createdAt).toLocaleString()}
+            </div>
+          </div>
+
+          <div>
+            <strong>Customer Information:</strong><br>
+            ${escapeHtml(order.customer.name)}<br>
+            ${escapeHtml(order.customer.email)}<br>
+            ${order.customer.phone ? escapeHtml(order.customer.phone) + '<br>' : ''}
+          </div>
+
+          <div>
+            <strong>Shipping Address:</strong><br>
+            ${escapeHtml(order.customer.address)}<br>
+            ${escapeHtml(order.customer.city)}, ${escapeHtml(order.customer.state)} ${escapeHtml(order.customer.zip)}
+          </div>
+
+          <div>
+            <strong>Order Items:</strong>
+            <ul class="admin-order-list">${itemsList}</ul>
+          </div>
+
+          <div class="admin-grid">
+            <div>
+              <strong>Subtotal:</strong> $${Number(order.totals.subtotal).toFixed(2)}<br>
+              <strong>Shipping:</strong> $${Number(order.totals.shipping).toFixed(2)}<br>
+              ${order.totals.discount ? `<strong>Discount:</strong> -$${Number(order.totals.discount).toFixed(2)}<br>` : ''}
+              <strong>Total:</strong> $${Number(order.totals.total).toFixed(2)}
+            </div>
+            <div>
+              ${order.promoCode ? `<strong>Promo Code:</strong> ${escapeHtml(order.promoCode)}<br>` : ''}
+              ${order.venmoNote ? `<strong>Venmo Note:</strong> ${escapeHtml(order.venmoNote)}` : ''}
+            </div>
+          </div>
+        </div>
       </div>
     `;
 
-    const select = card.querySelector(`[data-order-status="${order.orderNumber}"]`);
+    // Add event listeners
+    summary.addEventListener('click', () => {
+      listItem.classList.toggle('expanded');
+    });
+
+    const select = details.querySelector(`[data-order-status="${order.orderNumber}"]`);
     select.addEventListener('change', () =>
       handleUpdateOrderStatus(order.orderNumber, select.value)
     );
 
-    ordersContainer.appendChild(card);
+    listItem.appendChild(summary);
+    listItem.appendChild(details);
+    listContainer.appendChild(listItem);
   });
+
+  ordersContainer.appendChild(listContainer);
+
+  // Add pagination controls if needed
+  if (totalPages > 1) {
+    const pagination = document.createElement('div');
+    pagination.className = 'admin-pagination';
+
+    // Previous button
+    const prevBtn = document.createElement('button');
+    prevBtn.textContent = '← Previous';
+    prevBtn.disabled = currentOrderPage === 1;
+    prevBtn.addEventListener('click', () => {
+      if (currentOrderPage > 1) {
+        currentOrderPage--;
+        renderOrders(orders);
+      }
+    });
+    pagination.appendChild(prevBtn);
+
+    // Page numbers
+    const maxVisiblePages = 5;
+    let startPage = Math.max(1, currentOrderPage - Math.floor(maxVisiblePages / 2));
+    let endPage = Math.min(totalPages, startPage + maxVisiblePages - 1);
+
+    if (endPage - startPage < maxVisiblePages - 1) {
+      startPage = Math.max(1, endPage - maxVisiblePages + 1);
+    }
+
+    for (let i = startPage; i <= endPage; i++) {
+      const pageBtn = document.createElement('button');
+      pageBtn.textContent = i;
+      pageBtn.className = i === currentOrderPage ? 'active' : '';
+      pageBtn.addEventListener('click', () => {
+        currentOrderPage = i;
+        renderOrders(orders);
+      });
+      pagination.appendChild(pageBtn);
+    }
+
+    // Page info
+    const pageInfo = document.createElement('span');
+    pageInfo.className = 'admin-pagination-info';
+    pageInfo.textContent = `${startIndex + 1}-${endIndex} of ${totalOrders} orders`;
+    pagination.appendChild(pageInfo);
+
+    // Next button
+    const nextBtn = document.createElement('button');
+    nextBtn.textContent = 'Next →';
+    nextBtn.disabled = currentOrderPage === totalPages;
+    nextBtn.addEventListener('click', () => {
+      if (currentOrderPage < totalPages) {
+        currentOrderPage++;
+        renderOrders(orders);
+      }
+    });
+    pagination.appendChild(nextBtn);
+
+    ordersContainer.appendChild(pagination);
+  }
 }
 
 async function handleCreateProduct(event) {
@@ -514,6 +699,11 @@ function setActiveTab(tab, { focusButton = false } = {}) {
   if (!tabButtons.length) return;
 
   activeTab = tab;
+
+  // Reset order page when switching tabs
+  if (tab === 'orders') {
+    currentOrderPage = 1;
+  }
 
   tabButtons.forEach((button) => {
     const isActive = button.dataset.adminTab === tab;
