@@ -45,7 +45,7 @@ app.use(
     },
     credentials: true,
     allowedHeaders: ['Content-Type', 'X-Admin-Token'],
-    methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS']
+    methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS']
   })
 );
 

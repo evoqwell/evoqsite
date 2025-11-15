@@ -37,6 +37,19 @@ document.addEventListener('DOMContentLoaded', () => {
   initializeAdmin();
 });
 
+// Global error handlers to prevent unhandled rejections
+window.addEventListener('unhandledrejection', (event) => {
+  console.error('[admin] Unhandled promise rejection:', event.reason);
+  event.preventDefault(); // Prevent the default browser error handling
+  if (event.reason?.message) {
+    showStatus(`Error: ${event.reason.message}`, 'error');
+  }
+});
+
+window.addEventListener('error', (event) => {
+  console.error('[admin] Global error:', event.error);
+});
+
 function parseCategoriesInput(value) {
   if (!value) return [];
   return value
@@ -375,12 +388,17 @@ function renderOrders(orders) {
       <div class="admin-list-details-form">
         <div class="admin-card-body">
           <div class="admin-grid">
-            <label>
-              Order Status
-              <select data-order-status="${order.orderNumber}">
-                ${statusOptions}
-              </select>
-            </label>
+            <div>
+              <label>
+                Order Status
+                <select data-order-status="${order.orderNumber}">
+                  ${statusOptions}
+                </select>
+              </label>
+              <button type="button" class="btn-primary" data-update-status="${order.orderNumber}" style="margin-top: 8px;">
+                Update Status
+              </button>
+            </div>
             <div>
               <strong>Order Date:</strong><br>
               ${new Date(order.createdAt).toLocaleString()}
@@ -427,9 +445,38 @@ function renderOrders(orders) {
     });
 
     const select = details.querySelector(`[data-order-status="${order.orderNumber}"]`);
-    select.addEventListener('change', () =>
-      handleUpdateOrderStatus(order.orderNumber, select.value)
-    );
+    const updateBtn = details.querySelector(`[data-update-status="${order.orderNumber}"]`);
+
+    updateBtn.addEventListener('click', (event) => {
+      event.preventDefault();
+      const newStatus = select.value;
+      const originalStatus = order.status;
+
+      if (newStatus === originalStatus) {
+        showStatus('Status is already set to this value.', 'info');
+        return;
+      }
+
+      updateBtn.disabled = true;
+      updateBtn.textContent = 'Updating...';
+
+      handleUpdateOrderStatus(order.orderNumber, newStatus)
+        .then(() => {
+          updateBtn.textContent = 'Updated!';
+          order.status = newStatus; // Update local reference
+          setTimeout(() => {
+            updateBtn.textContent = 'Update Status';
+            updateBtn.disabled = false;
+          }, 2000);
+        })
+        .catch((error) => {
+          console.error('[admin] Status update failed:', error);
+          updateBtn.textContent = 'Update Status';
+          updateBtn.disabled = false;
+          // Revert select to original status on error
+          select.value = originalStatus;
+        });
+    });
 
     listItem.appendChild(summary);
     listItem.appendChild(details);
@@ -648,13 +695,28 @@ async function handleDeletePromo(code) {
 }
 
 async function handleUpdateOrderStatus(orderNumber, status) {
+  if (!adminToken) {
+    showStatus('Admin token is missing. Please reconnect.', 'error');
+    throw new Error('Admin token is missing');
+  }
+
   try {
-    await updateAdminOrderStatus(adminToken, orderNumber, status);
-    showStatus(`Order ${orderNumber} status updated to ${status}.`);
-    await loadDashboard(); // Reload to show the updated status
+    const result = await updateAdminOrderStatus(adminToken, orderNumber, status);
+    const displayStatus = status.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
+    showStatus(`✓ Order ${orderNumber} status updated to ${displayStatus}`, 'info');
+
+    // Update the order in local data without full reload
+    const orderIndex = lastLoadedData.orders.findIndex(o => o.orderNumber === orderNumber);
+    if (orderIndex !== -1) {
+      lastLoadedData.orders[orderIndex].status = status;
+    }
+
+    console.log('[admin] Order status updated successfully:', result);
   } catch (error) {
     console.error('[admin] Failed to update order status', error);
-    showStatus(error.message || 'Failed to update order status.', 'error');
+    const errorMsg = error.message || 'Failed to update order status.';
+    showStatus(`✗ ${errorMsg}`, 'error');
+    throw error; // Re-throw to handle in button click handler
   }
 }
 
