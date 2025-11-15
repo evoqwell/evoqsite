@@ -464,6 +464,28 @@ function renderOrders(orders) {
         .then(() => {
           updateBtn.textContent = 'Updated!';
           order.status = newStatus; // Update local reference
+
+          // Update the badge in the summary section
+          const statusBadge = listItem.querySelector('.admin-list-meta .admin-list-badge:last-child');
+          if (statusBadge) {
+            const statusBadgeClasses = {
+              pending_payment: 'warning',
+              paid: 'info',
+              fulfilled: 'success',
+              cancelled: 'danger'
+            };
+            const displayStatus = newStatus.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
+
+            // Remove old status classes
+            statusBadge.className = 'admin-list-badge';
+            // Add new status class
+            const badgeClass = statusBadgeClasses[newStatus] || '';
+            if (badgeClass) {
+              statusBadge.classList.add(badgeClass);
+            }
+            statusBadge.textContent = displayStatus;
+          }
+
           setTimeout(() => {
             updateBtn.textContent = 'Update Status';
             updateBtn.disabled = false;
