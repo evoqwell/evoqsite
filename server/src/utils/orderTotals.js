@@ -1,23 +1,28 @@
 import { centsToDollars } from './money.js';
 
-export function calculateOrderTotals({ cartItems, shippingCents = 0, promo }) {
+export function calculateOrderTotals({ cartItems, shippingCents = 0, promo, promos = [] }) {
   const subtotalCents = cartItems.reduce((sum, item) => {
     return sum + item.product.priceCents * item.quantity;
   }, 0);
 
   const effectiveShipping = subtotalCents > 0 ? shippingCents : 0;
 
-  let discountCents = 0;
-  if (promo) {
-    if (promo.discountType === 'percentage') {
-      discountCents = Math.round(subtotalCents * (promo.discountValue / 100));
-    } else if (promo.discountType === 'fixed') {
-      discountCents = Math.round(promo.discountValue * 100);
-    }
+  // Support both single promo (backward compat) and promos array
+  const promoList = promos.length > 0 ? promos : (promo ? [promo] : []);
 
-    if (discountCents > subtotalCents) {
-      discountCents = subtotalCents;
+  let discountCents = 0;
+  // Each promo applies to BASE subtotal (not compounding)
+  for (const p of promoList) {
+    if (p.discountType === 'percentage') {
+      discountCents += Math.round(subtotalCents * (p.discountValue / 100));
+    } else if (p.discountType === 'fixed') {
+      discountCents += Math.round(p.discountValue * 100);
     }
+  }
+
+  // Cap total discount at subtotal
+  if (discountCents > subtotalCents) {
+    discountCents = subtotalCents;
   }
 
   const totalCents = subtotalCents - discountCents + effectiveShipping;

@@ -61,7 +61,14 @@ const orderSchema = z.object({
     .trim()
     .toUpperCase()
     .regex(/^[A-Z0-9_\-]{0,20}$/, 'Invalid promo code format')
-    .optional()
+    .optional(),
+
+  promoCodes: z.array(
+    z.string()
+      .trim()
+      .toUpperCase()
+      .regex(/^[A-Z0-9_\-]{1,20}$/, 'Invalid promo code format')
+  ).optional()
 });
 
 export function validateOrderPayload(payload) {

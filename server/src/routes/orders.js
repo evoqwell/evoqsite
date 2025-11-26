@@ -55,19 +55,39 @@ router.post('/', orderLimiter, async (req, res, next) => {
       cartItems.push({ product, quantity });
     }
 
-    let promo = null;
-    if (payload.promoCode) {
-      const promoDoc = await PromoCode.findOne({ code: payload.promoCode, isActive: true }).lean();
-      if (!promoDoc) {
-        return res.status(400).json({ error: 'Promo code is invalid or inactive.' });
+    // Handle both single promoCode (backward compat) and promoCodes array
+    let promos = [];
+    const codesToValidate = payload.promoCodes || (payload.promoCode ? [payload.promoCode] : []);
+
+    if (codesToValidate.length > 0) {
+      // Check for duplicates in request
+      const uniqueCodes = [...new Set(codesToValidate.map(c => c.toUpperCase()))];
+      if (uniqueCodes.length !== codesToValidate.length) {
+        return res.status(400).json({ error: 'Duplicate promo codes are not allowed.' });
       }
-      promo = promoDoc;
+
+      // Validate all codes exist and are active
+      const promoDocs = await PromoCode.find({
+        code: { $in: uniqueCodes },
+        isActive: true
+      }).lean();
+
+      const foundCodes = promoDocs.map(p => p.code);
+      const invalidCodes = uniqueCodes.filter(c => !foundCodes.includes(c));
+
+      if (invalidCodes.length > 0) {
+        return res.status(400).json({
+          error: `Invalid or inactive promo code(s): ${invalidCodes.join(', ')}`
+        });
+      }
+
+      promos = promoDocs;
     }
 
     const totals = calculateOrderTotals({
       cartItems,
       shippingCents: config.shippingFlatRateCents,
-      promo
+      promos
     });
 
     const orderNumber = generateOrderNumber();
@@ -88,7 +108,8 @@ router.post('/', orderLimiter, async (req, res, next) => {
 
     const order = await Order.create({
       orderNumber,
-      promoCode: promo?.code,
+      promoCode: promos.length > 0 ? promos[0].code : null,
+      promoCodes: promos.map(p => p.code),
       venmoNote,
       items: orderItems,
       totals: {
@@ -116,7 +137,8 @@ router.post('/', orderLimiter, async (req, res, next) => {
     res.status(201).json({
       orderNumber,
       venmoUrl,
-      promoCode: promo?.code || null,
+      promoCode: promos.length > 0 ? promos[0].code : null,
+      promoCodes: promos.map(p => p.code),
       totals: totals.toJSON(),
       items: orderItems.map((item) => ({
         id: item.sku,

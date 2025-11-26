@@ -3,7 +3,7 @@ import { getCart, clearCart, updateQuantity, removeFromCart, addToCart } from '.
 import { escapeHtml, sanitizeProductId, sanitizeCurrency } from './lib/sanitizer.js';
 import { sendOrderEmails } from './lib/email.js';
 
-let appliedPromo = null;
+let appliedPromos = [];
 let shippingRate = 10;
 let checkoutFormValidator = null;
 let bacWaterProduct = null; // Store BAC water product info
@@ -148,10 +148,33 @@ function handleRemoveItem(event) {
 
 function calculateTotals(cart) {
   const subtotal = cart.reduce((sum, item) => sum + Number(item.price) * item.quantity, 0);
-  const discount = appliedPromo ? calculateDiscount(subtotal, appliedPromo) : 0;
+
+  // Calculate each discount on BASE subtotal (not compounding)
+  let discount = 0;
+  const discountDetails = [];
+
+  for (const promo of appliedPromos) {
+    let amount = 0;
+    if (promo.discountType === 'percentage') {
+      amount = Math.round(subtotal * (promo.discountValue / 100) * 100) / 100;
+    } else if (promo.discountType === 'fixed') {
+      amount = Math.min(promo.discountValue, subtotal);
+    }
+    discountDetails.push({
+      code: promo.code,
+      amount,
+      type: promo.discountType,
+      value: promo.discountValue
+    });
+    discount += amount;
+  }
+
+  // Cap total discount at subtotal
+  discount = Math.min(discount, subtotal);
+
   const shipping = subtotal > 0 ? shippingRate : 0;
   const total = subtotal - discount + shipping;
-  return { subtotal, discount, shipping, total };
+  return { subtotal, discount, discountDetails, shipping, total };
 }
 
 function calculateDiscount(subtotal, promo) {
@@ -168,10 +191,9 @@ function calculateDiscount(subtotal, promo) {
   return 0;
 }
 
-function updateOrderSummary({ subtotal, discount, shipping, total }) {
+function updateOrderSummary({ subtotal, discount, discountDetails = [], shipping, total }) {
   const subtotalEl = document.getElementById('cart-subtotal');
-  const discountEl = document.getElementById('promo-discount');
-  const discountRow = document.getElementById('promo-discount-row');
+  const discountContainer = document.getElementById('promo-discounts-container');
   const shippingEl = document.getElementById('cart-shipping');
   const shippingRow = document.getElementById('shipping-row');
   const totalEl = document.getElementById('cart-total');
@@ -184,51 +206,177 @@ function updateOrderSummary({ subtotal, discount, shipping, total }) {
     shippingRow.style.display = subtotal > 0 ? 'flex' : 'none';
   }
 
-  if (discount > 0 && discountEl && discountRow) {
-    discountEl.textContent = `-$${discount.toFixed(2)}`;
-    discountRow.style.display = 'flex';
-  } else if (discountRow) {
-    discountRow.style.display = 'none';
+  // Render individual discount lines
+  if (discountContainer) {
+    discountContainer.innerHTML = '';
+
+    if (discountDetails.length > 0) {
+      discountContainer.style.display = 'block';
+
+      discountDetails.forEach(detail => {
+        const row = document.createElement('div');
+        row.className = 'total-row promo-discount-row';
+
+        const labelSpan = document.createElement('span');
+        labelSpan.textContent = `Discount (${detail.code}):`;
+
+        const amountSpan = document.createElement('span');
+        amountSpan.className = 'discount-amount';
+        amountSpan.textContent = `-$${detail.amount.toFixed(2)}`;
+
+        row.appendChild(labelSpan);
+        row.appendChild(amountSpan);
+        discountContainer.appendChild(row);
+      });
+
+      // Add total savings row if multiple codes
+      if (discountDetails.length > 1) {
+        const totalRow = document.createElement('div');
+        totalRow.className = 'total-row total-savings';
+
+        const totalLabel = document.createElement('span');
+        totalLabel.textContent = 'Total Savings:';
+
+        const totalAmount = document.createElement('span');
+        totalAmount.className = 'discount-amount';
+        totalAmount.textContent = `-$${discount.toFixed(2)}`;
+
+        totalRow.appendChild(totalLabel);
+        totalRow.appendChild(totalAmount);
+        discountContainer.appendChild(totalRow);
+      }
+    } else {
+      discountContainer.style.display = 'none';
+    }
   }
 }
 
 function initPromoCode() {
   const applyBtn = document.getElementById('apply-promo');
-  if (!applyBtn) return;
+  const promoInput = document.getElementById('promo-code');
 
-  applyBtn.addEventListener('click', async () => {
-    const promoInput = document.getElementById('promo-code');
-    const promoMessage = document.getElementById('promo-message');
+  if (!applyBtn || !promoInput) return;
 
-    if (!promoInput || !promoMessage) return;
+  applyBtn.addEventListener('click', handleApplyPromo);
 
-    const code = promoInput.value.trim();
-    if (!code) {
-      promoMessage.className = 'promo-message error';
-      promoMessage.textContent = 'Please enter a promo code.';
-      return;
-    }
-
-    applyBtn.disabled = true;
-    applyBtn.textContent = 'Checking...';
-
-    try {
-      const promo = await fetchPromoCode(code);
-      appliedPromo = promo;
-      promoMessage.className = 'promo-message success';
-      promoMessage.textContent = promo.description || 'Promo code applied.';
-      promoInput.disabled = true;
-      applyBtn.textContent = 'Applied';
-      displayCartItems();
-    } catch (error) {
-      console.error('Promo validation failed', error);
-      appliedPromo = null;
-      promoMessage.className = 'promo-message error';
-      promoMessage.textContent = error.message || 'Promo code is not valid.';
-      applyBtn.disabled = false;
-      applyBtn.textContent = 'Apply';
+  // Allow Enter key to apply
+  promoInput.addEventListener('keypress', (e) => {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      handleApplyPromo();
     }
   });
+}
+
+async function handleApplyPromo() {
+  const promoInput = document.getElementById('promo-code');
+  const promoMessage = document.getElementById('promo-message');
+  const applyBtn = document.getElementById('apply-promo');
+
+  if (!promoInput || !promoMessage) return;
+
+  const code = promoInput.value.trim().toUpperCase();
+  if (!code) {
+    promoMessage.className = 'promo-message error';
+    promoMessage.textContent = 'Please enter a promo code.';
+    return;
+  }
+
+  // Check for duplicate
+  if (appliedPromos.some(p => p.code.toUpperCase() === code)) {
+    promoMessage.className = 'promo-message warning';
+    promoMessage.textContent = 'This code is already applied.';
+    promoInput.classList.add('shake');
+    setTimeout(() => promoInput.classList.remove('shake'), 400);
+    promoInput.select();
+    return;
+  }
+
+  applyBtn.disabled = true;
+  applyBtn.textContent = 'Checking...';
+
+  try {
+    const promo = await fetchPromoCode(code);
+    appliedPromos.push(promo);
+
+    promoMessage.className = 'promo-message success';
+    promoMessage.textContent = `"${promo.code}" applied! ${promo.description || ''}`;
+
+    // Clear input for next code
+    promoInput.value = '';
+    promoInput.focus();
+
+    // Update UI
+    renderAppliedPromoTags();
+    displayCartItems();
+  } catch (error) {
+    console.error('Promo validation failed', error);
+    promoMessage.className = 'promo-message error';
+    promoMessage.textContent = error.message || 'Promo code is not valid.';
+  } finally {
+    applyBtn.disabled = false;
+    applyBtn.textContent = 'Apply';
+  }
+}
+
+function renderAppliedPromoTags() {
+  const container = document.getElementById('applied-promos-container');
+  if (!container) return;
+
+  if (appliedPromos.length === 0) {
+    container.style.display = 'none';
+    container.innerHTML = '';
+    return;
+  }
+
+  container.style.display = 'block';
+  container.innerHTML = '';
+
+  appliedPromos.forEach((promo, index) => {
+    const tag = document.createElement('div');
+    tag.className = 'promo-tag';
+    tag.dataset.promoCode = promo.code;
+
+    // Format discount display
+    const discountText = promo.discountType === 'percentage'
+      ? `-${promo.discountValue}%`
+      : `-$${promo.discountValue.toFixed(2)}`;
+
+    const codeSpan = document.createElement('span');
+    codeSpan.className = 'promo-tag-code';
+    codeSpan.textContent = promo.code;
+
+    const discountSpan = document.createElement('span');
+    discountSpan.className = 'promo-tag-discount';
+    discountSpan.textContent = `(${discountText})`;
+
+    const removeBtn = document.createElement('button');
+    removeBtn.className = 'promo-tag-remove';
+    removeBtn.setAttribute('aria-label', `Remove ${promo.code}`);
+    removeBtn.setAttribute('title', 'Remove code');
+    removeBtn.innerHTML = '&times;';
+    removeBtn.addEventListener('click', () => removePromo(promo.code));
+
+    tag.appendChild(codeSpan);
+    tag.appendChild(discountSpan);
+    tag.appendChild(removeBtn);
+    container.appendChild(tag);
+  });
+}
+
+function removePromo(codeToRemove) {
+  const index = appliedPromos.findIndex(p => p.code === codeToRemove);
+  if (index > -1) {
+    appliedPromos.splice(index, 1);
+    renderAppliedPromoTags();
+    displayCartItems();
+
+    const promoMessage = document.getElementById('promo-message');
+    if (promoMessage) {
+      promoMessage.className = 'promo-message';
+      promoMessage.textContent = '';
+    }
+  }
 }
 
 function initClearCart() {
@@ -237,16 +385,19 @@ function initClearCart() {
 
   clearBtn.addEventListener('click', () => {
     clearCart();
-    appliedPromo = null;
+    appliedPromos = [];
     resetPromoUI();
     displayCartItems();
   });
 }
 
 function resetPromoUI() {
+  appliedPromos = [];
+
   const promoInput = document.getElementById('promo-code');
   const promoMessage = document.getElementById('promo-message');
   const applyBtn = document.getElementById('apply-promo');
+  const tagsContainer = document.getElementById('applied-promos-container');
 
   if (promoInput) {
     promoInput.value = '';
@@ -261,6 +412,11 @@ function resetPromoUI() {
   if (applyBtn) {
     applyBtn.disabled = false;
     applyBtn.textContent = 'Apply';
+  }
+
+  if (tagsContainer) {
+    tagsContainer.innerHTML = '';
+    tagsContainer.style.display = 'none';
   }
 }
 
@@ -462,8 +618,8 @@ async function handleCheckoutSubmit(event) {
     customer
   };
 
-  if (appliedPromo) {
-    payload.promoCode = appliedPromo.code;
+  if (appliedPromos.length > 0) {
+    payload.promoCodes = appliedPromos.map(p => p.code);
   }
 
   let emailError = null;
@@ -478,7 +634,7 @@ async function handleCheckoutSubmit(event) {
     }
 
     clearCart();
-    appliedPromo = null;
+    appliedPromos = [];
     bacWaterDeclined = false; // Reset the declined flag after successful checkout
     resetPromoUI();
     displayCartItems();
@@ -515,8 +671,10 @@ function showOrderConfirmation(order, { emailError } = {}) {
   const safeOrderNumber = escapeHtml(order.orderNumber || '');
   const safeCustomerName = escapeHtml(order.customer?.name || '');
   const safeCustomerEmail = escapeHtml(order.customer?.email || '');
-  const promoCode = order.promoCode ? escapeHtml(order.promoCode) : null;
-  const promoLabel = promoCode ? `Discount (${promoCode})` : 'Discount';
+  const promoCodes = order.promoCodes || (order.promoCode ? [order.promoCode] : []);
+  const promoLabel = promoCodes.length > 0
+    ? `Discount (${promoCodes.map(c => escapeHtml(c)).join(', ')})`
+    : 'Discount';
 
   const addressLines = [
     order.customer?.address,

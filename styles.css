@@ -865,6 +865,198 @@ textarea.form-control {
   border: 1px solid #f5c6cb;
 }
 
+.promo-message.warning {
+  background-color: #fff3cd;
+  color: #856404;
+  border: 1px solid #ffc107;
+}
+
+/* ============================================
+   STACKABLE PROMO CODES - UI COMPONENTS
+   ============================================ */
+
+/* Applied Promos Container */
+.applied-promos-container {
+  margin-top: 0.75rem;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+/* Individual Promo Tag */
+.promo-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.4rem 0.6rem 0.4rem 0.8rem;
+  background: linear-gradient(135deg, #d4edda 0%, #c3e6cb 100%);
+  border: 1px solid #28a745;
+  border-radius: 20px;
+  font-family: 'Arial', sans-serif;
+  font-size: 0.85rem;
+  color: #155724;
+  animation: promoTagIn 0.3s ease;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.promo-tag:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 2px 8px rgba(40, 167, 69, 0.25);
+}
+
+.promo-tag-code {
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.promo-tag-discount {
+  font-weight: 500;
+  color: #0f5132;
+  font-size: 0.8rem;
+}
+
+.promo-tag-remove {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 20px;
+  padding: 0;
+  margin-left: 0.25rem;
+  background: rgba(0, 0, 0, 0.1);
+  border: none;
+  border-radius: 50%;
+  cursor: pointer;
+  font-size: 1rem;
+  line-height: 1;
+  color: #155724;
+  transition: all 0.2s ease;
+}
+
+.promo-tag-remove:hover {
+  background: #dc3545;
+  color: white;
+  transform: scale(1.1);
+}
+
+.promo-tag-remove:focus {
+  outline: 2px solid #dc3545;
+  outline-offset: 2px;
+}
+
+/* Tag Animations */
+@keyframes promoTagIn {
+  from {
+    opacity: 0;
+    transform: scale(0.8) translateY(-5px);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
+}
+
+/* Input Shake Animation for Errors */
+@keyframes inputShake {
+  0%, 100% { transform: translateX(0); }
+  10%, 30%, 50%, 70%, 90% { transform: translateX(-5px); }
+  20%, 40%, 60%, 80% { transform: translateX(5px); }
+}
+
+.promo-code-input-group input.shake {
+  animation: inputShake 0.4s ease;
+  border-color: #ffc107;
+}
+
+/* Promo Discounts Container in Order Summary */
+.promo-discounts-container {
+  border-top: 1px dashed var(--sand);
+  border-bottom: 1px dashed var(--sand);
+  padding: 0.5rem 0;
+  margin: 0.5rem 0;
+}
+
+.promo-discounts-container .total-row {
+  margin-bottom: 0.5rem;
+  font-size: 0.95rem;
+}
+
+.promo-discounts-container .total-row:last-child {
+  margin-bottom: 0;
+}
+
+.promo-discount-row {
+  color: var(--stone);
+}
+
+.promo-discount-row .discount-amount {
+  color: #28a745;
+  font-weight: 600;
+}
+
+/* Total Savings Row (when multiple codes) */
+.total-savings {
+  margin-top: 0.5rem;
+  padding-top: 0.5rem;
+  border-top: 1px solid rgba(40, 167, 69, 0.3);
+  font-weight: 700;
+}
+
+.total-savings .discount-amount {
+  font-size: 1.05rem;
+  color: #28a745;
+}
+
+/* ============================================
+   MOBILE RESPONSIVE - PROMO CODES
+   ============================================ */
+@media (max-width: 768px) {
+  .applied-promos-container {
+    margin-top: 0.6rem;
+    gap: 0.4rem;
+  }
+
+  .promo-tag {
+    font-size: 0.8rem;
+    padding: 0.35rem 0.5rem 0.35rem 0.65rem;
+  }
+
+  .promo-tag-remove {
+    width: 24px;
+    height: 24px;
+    min-width: 24px;
+    min-height: 24px;
+    font-size: 1.1rem;
+  }
+
+  .promo-discounts-container .total-row {
+    font-size: 0.9rem;
+  }
+}
+
+/* Touch device optimizations */
+@media (hover: none) and (pointer: coarse) {
+  .promo-tag {
+    padding: 0.5rem 0.7rem 0.5rem 0.9rem;
+  }
+
+  .promo-tag-remove {
+    width: 28px;
+    height: 28px;
+    font-size: 1.2rem;
+  }
+
+  .promo-tag:hover {
+    transform: none;
+    box-shadow: none;
+  }
+
+  .promo-tag:active {
+    transform: scale(0.98);
+  }
+}
+
 .compliance-note {
   background-color: var(--bone);
   padding: 1rem;

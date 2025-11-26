@@ -46,6 +46,7 @@ const orderSchema = new mongoose.Schema(
       default: 'pending_payment'
     },
     promoCode: { type: String },
+    promoCodes: [{ type: String }],
     venmoNote: { type: String },
     items: {
       type: [orderItemSchema],

@@ -118,9 +118,8 @@
                             <span>Subtotal:</span>
                             <span id="cart-subtotal">$0.00</span>
                         </div>
-                        <div class="total-row promo-discount" id="promo-discount-row" style="display: none;">
-                            <span>Promo Code (<span id="applied-promo-code"></span>):</span>
-                            <span id="promo-discount" class="discount-amount">-$0.00</span>
+                        <div id="promo-discounts-container" class="promo-discounts-container" style="display: none;">
+                            <!-- Individual discount rows will be inserted here by JS -->
                         </div>
                         <div class="total-row" id="shipping-row" style="display: none;">
                             <span>Shipping:</span>
@@ -176,12 +175,13 @@
                         </div>
 
                         <div class="form-group promo-code-section">
-                            <label for="promo-code">Promo Code (Optional)</label>
+                            <label for="promo-code">Promo Codes (Optional)</label>
                             <div class="promo-code-input-group">
-                                <input type="text" id="promo-code" name="promoCode" class="form-control" placeholder="Enter promo code">
+                                <input type="text" id="promo-code" name="promoCode" class="form-control" placeholder="Enter promo code" autocomplete="off" autocapitalize="characters">
                                 <button type="button" id="apply-promo" class="btn-apply-promo">Apply</button>
                             </div>
-                            <div id="promo-message" class="promo-message" role="alert"></div>
+                            <div id="promo-message" class="promo-message" role="alert" aria-live="polite"></div>
+                            <div id="applied-promos-container" class="applied-promos-container" style="display: none;" aria-label="Applied promo codes"></div>
                         </div>
 
                         <div class="compliance-note">
