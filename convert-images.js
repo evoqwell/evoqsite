@@ -15,7 +15,13 @@ const convertImagesToWebP = async () => {
     'NAD+.png',
     'Retatrutide.png',
     'sermorelin.png',
-    'Tirzepatide.png'
+    'Tirzepatide.png',
+    'Vials.png',
+    'Vials1.png',
+    'Vials2.png',
+    'Header.png',
+    'Header_BG.png',
+    'vials2_mobile.png'
   ];
 
   console.log('Starting WebP conversion...\n');
