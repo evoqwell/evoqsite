@@ -14,6 +14,8 @@ import ordersRouter from './routes/orders.js';
 import adminProductsRouter from './routes/adminProducts.js';
 import adminPromosRouter from './routes/adminPromos.js';
 import adminOrdersRouter from './routes/adminOrders.js';
+import trackingRouter from './routes/tracking.js';
+import adminAnalyticsRouter from './routes/adminAnalytics.js';
 
 const app = express();
 
@@ -66,9 +68,11 @@ app.get('/api/health', (req, res) => {
 app.use('/api/products', productsRouter);
 app.use('/api/promos', promosRouter);
 app.use('/api/orders', ordersRouter);
+app.use('/api/track', trackingRouter);
 app.use('/api/admin/products', adminProductsRouter);
 app.use('/api/admin/promos', adminPromosRouter);
 app.use('/api/admin/orders', adminOrdersRouter);
+app.use('/api/admin/analytics', adminAnalyticsRouter);
 
 app.use((err, req, res, next) => {
   console.error('[api] Error:', err);

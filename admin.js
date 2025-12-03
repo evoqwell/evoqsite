@@ -8,7 +8,8 @@
   updateAdminPromo,
   deleteAdminPromo,
   fetchAdminOrders,
-  updateAdminOrderStatus
+  updateAdminOrderStatus,
+  fetchAdminAnalytics
 } from './lib/adminApi.js';
 
 let adminToken = '';
@@ -32,6 +33,18 @@ const promosContainer = document.getElementById('admin-promos');
 const ordersContainer = document.getElementById('admin-orders');
 const productCreateForm = document.getElementById('admin-create-product-form');
 const promoCreateForm = document.getElementById('admin-create-promo-form');
+
+// Analytics elements
+const analyticsRangeSelect = document.getElementById('analytics-range');
+const analyticsRefreshBtn = document.getElementById('analytics-refresh');
+const analyticsLoading = document.getElementById('analytics-loading');
+const analyticsContent = document.getElementById('analytics-content');
+const analyticsBreakdown = document.getElementById('analytics-breakdown');
+const analyticsError = document.getElementById('analytics-error');
+const analyticsChartContainer = document.getElementById('analytics-chart-container');
+const analyticsChartCanvas = document.getElementById('analytics-chart');
+
+let analyticsChart = null;
 
 document.addEventListener('DOMContentLoaded', () => {
   initializeAdmin();
@@ -84,6 +97,8 @@ function initializeAdmin() {
   if (promoCreateForm) {
     promoCreateForm.addEventListener('submit', handleCreatePromo);
   }
+
+  initializeAnalytics();
 
   const storedTab = sessionStorage.getItem('evoq_admin_tab');
   if (storedTab) {
@@ -790,6 +805,11 @@ function setActiveTab(tab, { focusButton = false } = {}) {
     currentOrderPage = 1;
   }
 
+  // Load analytics when switching to analytics tab
+  if (tab === 'analytics' && adminToken) {
+    loadAnalytics();
+  }
+
   tabButtons.forEach((button) => {
     const isActive = button.dataset.adminTab === tab;
     button.classList.toggle('active', isActive);
@@ -830,6 +850,328 @@ function escapeHtml(value) {
     .replace(/>/g, '&gt;')
     .replace(/"/g, '&quot;')
     .replace(/'/g, '&#39;');
+}
+
+// Analytics functions
+async function loadAnalytics() {
+  if (!adminToken) {
+    showAnalyticsError('Connect with admin token to view analytics.');
+    return;
+  }
+
+  const range = analyticsRangeSelect?.value || 'daily';
+
+  showAnalyticsLoading(true);
+  hideAnalyticsError();
+
+  try {
+    const data = await fetchAdminAnalytics(adminToken, range);
+    renderAnalytics(data);
+  } catch (error) {
+    console.error('[admin] Failed to load analytics:', error);
+    showAnalyticsError(error.message || 'Failed to load analytics.');
+  } finally {
+    showAnalyticsLoading(false);
+  }
+}
+
+function renderAnalytics(data) {
+  if (!analyticsContent) return;
+
+  // Update total stats
+  const uniqueVisitors = document.getElementById('stat-unique-visitors');
+  const totalViews = document.getElementById('stat-total-views');
+
+  if (uniqueVisitors) {
+    uniqueVisitors.textContent = formatNumber(data.uniqueVisitors || 0);
+  }
+  if (totalViews) {
+    totalViews.textContent = formatNumber(data.totalPageViews || 0);
+  }
+
+  // Update page breakdown
+  const byPage = data.byPage || {};
+
+  const homepage = byPage.homepage || { uniqueVisitors: 0, pageViews: 0 };
+  const homepageVisitors = document.getElementById('stat-homepage-visitors');
+  const homepageViews = document.getElementById('stat-homepage-views');
+  if (homepageVisitors) homepageVisitors.textContent = formatNumber(homepage.uniqueVisitors);
+  if (homepageViews) homepageViews.textContent = formatNumber(homepage.pageViews);
+
+  const products = byPage.products || { uniqueVisitors: 0, pageViews: 0 };
+  const productsVisitors = document.getElementById('stat-products-visitors');
+  const productsViews = document.getElementById('stat-products-views');
+  if (productsVisitors) productsVisitors.textContent = formatNumber(products.uniqueVisitors);
+  if (productsViews) productsViews.textContent = formatNumber(products.pageViews);
+
+  // Render chart
+  renderAnalyticsChart(data.timeSeries || []);
+
+  // Show content
+  analyticsContent.style.display = 'grid';
+  if (analyticsChartContainer) analyticsChartContainer.style.display = 'block';
+  if (analyticsBreakdown) analyticsBreakdown.style.display = 'block';
+}
+
+function convertUtcHourToLocal(label) {
+  // Parse hour labels like "1pm", "12am" from UTC to local time
+  const match = label.match(/^(\d{1,2})(am|pm)$/i);
+  if (!match) return label;
+
+  let hour = parseInt(match[1], 10);
+  const isPm = match[2].toLowerCase() === 'pm';
+
+  // Convert to 24-hour format
+  if (isPm && hour !== 12) hour += 12;
+  if (!isPm && hour === 12) hour = 0;
+
+  // Create a UTC date with this hour and convert to local
+  const utcDate = new Date();
+  utcDate.setUTCHours(hour, 0, 0, 0);
+
+  // Get the local hour
+  const localHour = utcDate.getHours();
+
+  // Convert back to 12-hour format
+  const localIsPm = localHour >= 12;
+  const localHour12 = localHour === 0 ? 12 : localHour > 12 ? localHour - 12 : localHour;
+
+  return `${localHour12}${localIsPm ? 'pm' : 'am'}`;
+}
+
+function renderAnalyticsChart(timeSeries) {
+  if (!analyticsChartCanvas || typeof Chart === 'undefined') return;
+
+  // Destroy existing chart
+  if (analyticsChart) {
+    analyticsChart.destroy();
+    analyticsChart = null;
+  }
+
+  const homepage = timeSeries.homepage || [];
+  const products = timeSeries.products || [];
+
+  // Get all unique labels and convert to local time
+  const allLabels = new Set();
+  homepage.forEach(item => allLabels.add(item.label));
+  products.forEach(item => allLabels.add(item.label));
+
+  // Sort labels by converting back to sortable format
+  const sortedLabels = Array.from(allLabels).sort((a, b) => {
+    return getLabelSortKey(a) - getLabelSortKey(b);
+  });
+
+  const labels = sortedLabels.map(convertUtcHourToLocal);
+
+  // Create data arrays aligned to labels
+  const homepageMap = new Map(homepage.map(item => [item.label, item]));
+  const productsMap = new Map(products.map(item => [item.label, item]));
+
+  const homepageVisitors = sortedLabels.map(label => homepageMap.get(label)?.uniqueVisitors || 0);
+  const homepageViews = sortedLabels.map(label => homepageMap.get(label)?.pageViews || 0);
+  const productsVisitors = sortedLabels.map(label => productsMap.get(label)?.uniqueVisitors || 0);
+  const productsViews = sortedLabels.map(label => productsMap.get(label)?.pageViews || 0);
+
+  const ctx = analyticsChartCanvas.getContext('2d');
+
+  analyticsChart = new Chart(ctx, {
+    type: 'line',
+    data: {
+      labels,
+      datasets: [
+        {
+          label: 'Homepage Visitors',
+          data: homepageVisitors,
+          borderColor: '#1c6b34',
+          backgroundColor: 'rgba(28, 107, 52, 0.1)',
+          fill: false,
+          tension: 0.3,
+          pointRadius: 4,
+          pointHoverRadius: 6,
+          hidden: false,
+          metricType: 'visitors'
+        },
+        {
+          label: 'Products Visitors',
+          data: productsVisitors,
+          borderColor: '#2d9d4f',
+          backgroundColor: 'rgba(45, 157, 79, 0.1)',
+          fill: false,
+          tension: 0.3,
+          pointRadius: 4,
+          pointHoverRadius: 6,
+          borderDash: [5, 5],
+          hidden: false,
+          metricType: 'visitors'
+        },
+        {
+          label: 'Homepage Views',
+          data: homepageViews,
+          borderColor: '#1f3d7a',
+          backgroundColor: 'rgba(31, 61, 122, 0.1)',
+          fill: false,
+          tension: 0.3,
+          pointRadius: 4,
+          pointHoverRadius: 6,
+          hidden: true,
+          metricType: 'views'
+        },
+        {
+          label: 'Products Views',
+          data: productsViews,
+          borderColor: '#4a7fc9',
+          backgroundColor: 'rgba(74, 127, 201, 0.1)',
+          fill: false,
+          tension: 0.3,
+          pointRadius: 4,
+          pointHoverRadius: 6,
+          borderDash: [5, 5],
+          hidden: true,
+          metricType: 'views'
+        }
+      ]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      events: ['click', 'touchstart'],
+      interaction: {
+        intersect: false,
+        mode: 'index'
+      },
+      plugins: {
+        legend: {
+          position: 'top',
+          labels: {
+            usePointStyle: true,
+            pointStyle: 'circle',
+            padding: 15,
+            generateLabels: function(chart) {
+              // Show only two toggle options: Visitors and Views
+              const visitorsHidden = chart.data.datasets[0].hidden;
+              return [
+                {
+                  text: 'Unique Visitors',
+                  fillStyle: !visitorsHidden ? '#1c6b34' : 'transparent',
+                  strokeStyle: '#1c6b34',
+                  lineWidth: 2,
+                  hidden: false,
+                  index: 0,
+                  pointStyle: 'circle'
+                },
+                {
+                  text: 'Page Views',
+                  fillStyle: visitorsHidden ? '#1f3d7a' : 'transparent',
+                  strokeStyle: '#1f3d7a',
+                  lineWidth: 2,
+                  hidden: false,
+                  index: 1,
+                  pointStyle: 'circle'
+                }
+              ];
+            }
+          },
+          onClick: function(e, legendItem, legend) {
+            const chart = legend.chart;
+            const showVisitors = legendItem.index === 0;
+
+            // Toggle between visitors and views
+            chart.data.datasets.forEach((dataset) => {
+              if (dataset.metricType === 'visitors') {
+                dataset.hidden = !showVisitors;
+              } else {
+                dataset.hidden = showVisitors;
+              }
+            });
+
+            chart.update();
+          }
+        },
+        tooltip: {
+          backgroundColor: 'rgba(47, 42, 37, 0.9)',
+          titleColor: '#fff',
+          bodyColor: '#fff',
+          padding: 12,
+          cornerRadius: 8
+        }
+      },
+      scales: {
+        x: {
+          grid: {
+            display: false
+          },
+          ticks: {
+            maxRotation: 45,
+            minRotation: 0
+          }
+        },
+        y: {
+          beginAtZero: true,
+          grid: {
+            color: 'rgba(47, 42, 37, 0.1)'
+          },
+          ticks: {
+            precision: 0
+          }
+        }
+      }
+    }
+  });
+}
+
+function getLabelSortKey(label) {
+  // Parse hour labels for sorting
+  const match = label.match(/^(\d{1,2})(am|pm)$/i);
+  if (match) {
+    let hour = parseInt(match[1], 10);
+    const isPm = match[2].toLowerCase() === 'pm';
+    if (isPm && hour !== 12) hour += 12;
+    if (!isPm && hour === 12) hour = 0;
+    return hour;
+  }
+  // For date labels, try to parse
+  return 0;
+}
+
+function formatNumber(num) {
+  return num.toLocaleString();
+}
+
+function showAnalyticsLoading(show) {
+  if (analyticsLoading) {
+    analyticsLoading.style.display = show ? 'block' : 'none';
+  }
+  if (analyticsContent && show) {
+    analyticsContent.style.display = 'none';
+  }
+  if (analyticsChartContainer && show) {
+    analyticsChartContainer.style.display = 'none';
+  }
+  if (analyticsBreakdown && show) {
+    analyticsBreakdown.style.display = 'none';
+  }
+}
+
+function showAnalyticsError(message) {
+  if (analyticsError) {
+    analyticsError.textContent = message;
+    analyticsError.style.display = 'block';
+  }
+}
+
+function hideAnalyticsError() {
+  if (analyticsError) {
+    analyticsError.style.display = 'none';
+  }
+}
+
+function initializeAnalytics() {
+  if (analyticsRangeSelect) {
+    analyticsRangeSelect.addEventListener('change', loadAnalytics);
+  }
+  if (analyticsRefreshBtn) {
+    analyticsRefreshBtn.addEventListener('click', loadAnalytics);
+  }
 }
 
 

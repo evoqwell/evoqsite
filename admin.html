@@ -13,6 +13,7 @@
 
     <title>EVOQ Admin Dashboard</title>
     <link rel="stylesheet" href="/styles.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
         body {
             background: #f5f1e9;
@@ -469,6 +470,7 @@
                 <button id="admin-tab-products" type="button" class="admin-tab active" role="tab" aria-selected="true" aria-controls="admin-products-panel" data-admin-tab="products">Products</button>
                 <button id="admin-tab-promos" type="button" class="admin-tab" role="tab" aria-selected="false" aria-controls="admin-promos-panel" data-admin-tab="promos">Promo Codes</button>
                 <button id="admin-tab-orders" type="button" class="admin-tab" role="tab" aria-selected="false" aria-controls="admin-orders-panel" data-admin-tab="orders">Orders</button>
+                <button id="admin-tab-analytics" type="button" class="admin-tab" role="tab" aria-selected="false" aria-controls="admin-analytics-panel" data-admin-tab="analytics">Analytics</button>
             </nav>
         </header>
 
@@ -564,6 +566,73 @@
         <section class="admin-section" id="admin-orders-panel" role="tabpanel" aria-labelledby="admin-tab-orders" data-admin-panel="orders" hidden>
             <h2>Orders</h2>
             <div id="admin-orders"></div>
+        </section>
+
+        <section class="admin-section" id="admin-analytics-panel" role="tabpanel" aria-labelledby="admin-tab-analytics" data-admin-panel="analytics" hidden>
+            <h2>Website Analytics</h2>
+            <div class="admin-card">
+                <div class="admin-card-body">
+                    <div style="display: flex; gap: 1rem; align-items: center; flex-wrap: wrap; margin-bottom: 1.5rem;">
+                        <label style="display: flex; align-items: center; gap: 0.5rem;">
+                            Time Range:
+                            <select id="analytics-range" style="padding: 0.5rem; border-radius: 6px; border: 1px solid rgba(47,42,37,0.2); background: #fff;">
+                                <option value="daily">Today</option>
+                                <option value="week">Last 7 Days</option>
+                                <option value="month">Last 30 Days</option>
+                                <option value="3months">Last 3 Months</option>
+                                <option value="all">All Time</option>
+                            </select>
+                        </label>
+                        <button type="button" id="analytics-refresh" class="btn-primary" style="padding: 0.5rem 1rem;">
+                            Refresh
+                        </button>
+                    </div>
+
+                    <div id="analytics-loading" style="display: none; padding: 1rem; color: rgba(47,42,37,0.7);">
+                        Loading analytics...
+                    </div>
+
+                    <div id="analytics-content" class="admin-grid" style="display: none;">
+                        <div style="background: linear-gradient(135deg, #e0f5e5 0%, #d0ebe0 100%); padding: 1.5rem; border-radius: 12px; text-align: center;">
+                            <div style="font-size: 2.5rem; font-weight: 700; color: #1c6b34;" id="stat-unique-visitors">0</div>
+                            <div style="font-size: 0.95rem; color: #1c6b34; opacity: 0.8;">Unique Visitors</div>
+                        </div>
+                        <div style="background: linear-gradient(135deg, #e5ecff 0%, #d5e2ff 100%); padding: 1.5rem; border-radius: 12px; text-align: center;">
+                            <div style="font-size: 2.5rem; font-weight: 700; color: #1f3d7a;" id="stat-total-views">0</div>
+                            <div style="font-size: 0.95rem; color: #1f3d7a; opacity: 0.8;">Total Page Views</div>
+                        </div>
+                    </div>
+
+                    <div id="analytics-chart-container" style="display: none; margin-top: 1.5rem; background: #fff; border-radius: 12px; padding: 1.5rem; border: 1px solid rgba(47,42,37,0.1);">
+                        <h3 style="margin-bottom: 1rem; font-size: 1.1rem;">Traffic Over Time</h3>
+                        <div style="position: relative; height: 300px;">
+                            <canvas id="analytics-chart"></canvas>
+                        </div>
+                    </div>
+
+                    <div id="analytics-breakdown" style="display: none; margin-top: 1.5rem;">
+                        <h3 style="margin-bottom: 1rem; font-size: 1.1rem;">Breakdown by Page</h3>
+                        <div class="admin-grid">
+                            <div style="background: #faf7f1; padding: 1rem; border-radius: 8px; border: 1px solid rgba(47,42,37,0.1);">
+                                <div style="font-weight: 600; margin-bottom: 0.5rem;">Homepage</div>
+                                <div style="font-size: 0.9rem; color: rgba(47,42,37,0.7);">
+                                    <span id="stat-homepage-visitors">0</span> visitors /
+                                    <span id="stat-homepage-views">0</span> views
+                                </div>
+                            </div>
+                            <div style="background: #faf7f1; padding: 1rem; border-radius: 8px; border: 1px solid rgba(47,42,37,0.1);">
+                                <div style="font-weight: 600; margin-bottom: 0.5rem;">Products Page</div>
+                                <div style="font-size: 0.9rem; color: rgba(47,42,37,0.7);">
+                                    <span id="stat-products-visitors">0</span> visitors /
+                                    <span id="stat-products-views">0</span> views
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div id="analytics-error" class="admin-status error" style="display: none; margin-top: 1rem;"></div>
+                </div>
+            </div>
         </section>
     </div>
 
