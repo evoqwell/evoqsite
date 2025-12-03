@@ -1455,13 +1455,13 @@ footer .container {
   }
 
   .hero-headline {
-    font-size: 2.8rem !important;
-    margin-top: 0;
+    font-size: 2.7rem !important;
+    margin-top: -0.75rem;
     margin-bottom: 0.6rem;
   }
 
   .hero-subtext {
-    font-size: 1.35rem !important;
+    font-size: 1.3rem !important;
     margin-bottom: 0.85rem;
   }
 
