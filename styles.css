@@ -5116,9 +5116,10 @@ button:focus {
   .product-card .product-price.product-price-header,
   .product-price.product-price-header {
     display: block !important;
-    font-size: 1.1rem !important;
+    font-size: 1.25rem !important;
     font-weight: 600 !important;
     color: #4A4A4A !important;
+    letter-spacing: -0.01em !important;
   }
 
   .product-card .product-footer > .product-price {
