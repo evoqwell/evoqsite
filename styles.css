@@ -433,18 +433,56 @@ body:has(.hero-contact) {
 @media (max-width: 768px) {
   .hero-about,
   .hero-contact {
-    height: 60vh;
-    min-height: 350px;
-    padding-top: 6vh;
+    height: auto;
+    min-height: unset;
+    max-height: unset;
+    padding: 3rem 1rem 2rem;
+  }
+
+  .hero-about .hero-content,
+  .hero-contact .hero-content {
+    height: auto;
+    padding: 0;
+  }
+
+  .hero-about .hero-headline,
+  .hero-contact .hero-headline {
+    font-size: 2.2rem;
+    margin-bottom: 0.75rem;
+  }
+
+  .hero-about .hero-subtext,
+  .hero-contact .hero-subtext {
+    font-size: 1.1rem;
+    margin-bottom: 1rem;
+  }
+
+  .hero-about .hero-values,
+  .hero-contact .hero-values {
+    margin-top: 0.5rem;
+    margin-bottom: 0;
   }
 }
 
 @media (max-width: 480px) {
   .hero-about,
   .hero-contact {
-    height: 55vh;
-    min-height: 300px;
-    padding-top: 4vh;
+    padding: 2.5rem 1rem 1.5rem;
+  }
+
+  .hero-about .hero-headline,
+  .hero-contact .hero-headline {
+    font-size: 1.9rem;
+  }
+
+  .hero-about .hero-subtext,
+  .hero-contact .hero-subtext {
+    font-size: 1rem;
+  }
+
+  .hero-about .hero-values,
+  .hero-contact .hero-values {
+    font-size: 0.7rem;
   }
 }
 
