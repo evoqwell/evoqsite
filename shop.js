@@ -83,6 +83,10 @@ function createProductCard(product) {
     info.appendChild(categories);
   }
 
+  // Product header (name + price for mobile inline layout)
+  const header = document.createElement('div');
+  header.className = 'product-header';
+
   // Product name with styled unit
   const title = document.createElement('h3');
   title.className = 'product-name';
@@ -99,7 +103,15 @@ function createProductCard(product) {
   } else {
     title.textContent = product.name;
   }
-  info.appendChild(title);
+  header.appendChild(title);
+
+  // Price in header (visible on mobile, hidden on desktop)
+  const headerPrice = document.createElement('span');
+  headerPrice.className = 'product-price product-price-header';
+  headerPrice.textContent = `$${Number(product.price).toFixed(2)}`;
+  header.appendChild(headerPrice);
+
+  info.appendChild(header);
 
   // Footer with price and actions
   const footer = document.createElement('div');

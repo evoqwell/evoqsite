@@ -1182,6 +1182,16 @@ body:has(.hero-contact) {
   font-weight: 300;
 }
 
+/* Product Header — contains name and price (for mobile inline layout) */
+.product-header {
+  display: block;
+}
+
+/* Hide header price on desktop - price shows in footer */
+.product-price-header {
+  display: none;
+}
+
 /* Product Name — Hero element */
 .product-name {
   font-family: var(--font-display);
@@ -2285,9 +2295,9 @@ footer .container {
   /* Products grid - mobile */
   .products-grid {
     grid-template-columns: 1fr;
-    gap: 1rem;
-    padding: var(--space-md);
-    max-width: 400px;
+    gap: 0.75rem;
+    padding: var(--space-sm);
+    max-width: 100%;
     margin: 0 auto;
   }
 
@@ -2296,66 +2306,88 @@ footer .container {
     flex-direction: column;
   }
 
+  /* Smaller image on mobile */
   .product-image-container {
-    aspect-ratio: 1 / 1;
+    aspect-ratio: 4 / 3;
   }
 
   .product-info {
-    padding: var(--space-md);
+    padding: 0.75rem 1rem;
     display: flex;
     flex-direction: column;
-    flex: 1;
+  }
+
+  /* Name and price on same row */
+  .product-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    gap: 0.5rem;
   }
 
   .product-name {
-    font-size: 1.25rem;
-    margin-bottom: 0.25rem;
+    font-size: 1.05rem;
+    margin-bottom: 0;
+    flex: 1;
+    min-width: 0;
+  }
+
+  /* Show header price on mobile */
+  .product-price-header {
+    display: block !important;
+    font-size: 1.05rem;
+    font-weight: 600;
+    white-space: nowrap;
   }
 
   .product-category-chip {
-    font-size: 0.65rem;
+    font-size: 0.6rem;
+    margin-bottom: 0.5rem;
   }
 
+  /* Hide description on mobile */
   .product-description {
-    font-size: 0.85rem;
-    margin-bottom: 1rem;
+    display: none;
   }
 
-  /* Footer - stack vertically on mobile */
+  /* Footer - compact layout */
   .product-footer {
-    flex-direction: column;
-    align-items: stretch;
-    gap: 1rem;
-    margin-top: auto;
-    padding-top: 1rem;
+    flex-direction: row;
+    align-items: center;
+    gap: 0.5rem;
+    margin-top: 0.5rem;
+    padding-top: 0.5rem;
+    border-top: 1px solid rgba(138, 125, 110, 0.2);
   }
 
-  .product-price {
-    font-size: 1.35rem;
-    text-align: center;
+  /* Hide footer price on mobile since it's in header now */
+  .product-footer > .product-price:not(.product-price-header) {
+    display: none;
   }
 
-  /* Actions - stack buttons vertically */
+  /* Actions - horizontal row with less gap */
   .product-actions {
     display: flex;
-    flex-direction: column;
-    gap: 0.75rem;
+    flex-direction: row;
+    gap: 0.4rem;
     width: 100%;
-  }
-
-  .btn-add-cart {
-    width: 100%;
-    font-size: 0.75rem;
-    padding: 1rem;
-    text-align: center;
-    justify-content: center;
   }
 
   .btn-view-details {
-    width: 100%;
-    font-size: 0.8rem;
+    flex: 0 0 auto;
+    font-size: 0.75rem;
     text-align: center;
-    padding: 0.75rem;
+    padding: 0.5rem 0.75rem;
+    min-height: 38px;
+  }
+
+  .btn-add-cart {
+    flex: 1;
+    font-size: 0.7rem;
+    padding: 0.5rem 0.75rem;
+    text-align: center;
+    justify-content: center;
+    min-height: 38px;
   }
 
   .btn-view-details::after {
