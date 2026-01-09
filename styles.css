@@ -2020,8 +2020,11 @@ footer .container {
 
   /* Fullscreen hero responsive (homepage only) */
   body:has(.hero-fullscreen) {
-    overflow: hidden;
+    overflow-y: auto;
+    overflow-x: hidden;
     height: 100svh;
+    /* Allow pull-to-refresh on mobile */
+    overscroll-behavior-y: auto;
   }
 
   /* Override for About/Contact - allow scrolling */
