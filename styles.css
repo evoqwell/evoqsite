@@ -276,7 +276,7 @@ body:has(.hero-fullscreen) {
   justify-content: center;
   padding-top: 8vh;
   overflow: hidden;
-  background-image: url('/Vials2.webp');
+  background-image: url('/vials3.webp');
   background-size: cover;
   background-position: center center;
   background-repeat: no-repeat;
@@ -285,7 +285,7 @@ body:has(.hero-fullscreen) {
 
 /* Fallback for browsers without WebP support */
 .no-webp .hero-fullscreen {
-  background-image: url('/Vials2.png');
+  background-image: url('/vials3.jpg');
 }
 
 /* Mobile-only line break */
@@ -300,11 +300,11 @@ body:has(.hero-fullscreen) {
   }
 
   .hero-fullscreen {
-    background-image: url('/vials2_mobile.webp');
+    background-image: url('/vials3_mobile.webp');
   }
 
   .no-webp .hero-fullscreen {
-    background-image: url('/vials2_mobile.png');
+    background-image: url('/vials3_mobile.jpg');
   }
 }
 
