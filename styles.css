@@ -2307,7 +2307,7 @@ footer .container {
   }
 
   /* Smaller image on mobile - 16:10 ratio */
-  .product-image-container {
+  .product-image-wrapper {
     aspect-ratio: 16 / 10;
   }
 
@@ -2596,7 +2596,7 @@ footer .container {
     min-height: auto;
   }
 
-  .product-image-container {
+  .product-image-wrapper {
     aspect-ratio: 4 / 3;
   }
 
@@ -5092,7 +5092,7 @@ button:focus {
     gap: 0.75rem !important;
   }
 
-  .product-card .product-image-container {
+  .product-card .product-image-wrapper {
     aspect-ratio: 16 / 10 !important;
   }
 
