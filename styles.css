@@ -2306,13 +2306,13 @@ footer .container {
     flex-direction: column;
   }
 
-  /* Smaller image on mobile */
+  /* Smaller image on mobile - 16:10 ratio */
   .product-image-container {
-    aspect-ratio: 4 / 3;
+    aspect-ratio: 16 / 10;
   }
 
   .product-info {
-    padding: 0.75rem 1rem;
+    padding: 0.6rem 0.875rem;
     display: flex;
     flex-direction: column;
   }
@@ -2326,18 +2326,20 @@ footer .container {
   }
 
   .product-name {
-    font-size: 1.2rem;
+    font-size: 1.15rem !important;
     margin-bottom: 0;
     flex: 1;
     min-width: 0;
   }
 
   /* Show header price on mobile - same size as name */
-  .product-price-header {
+  .product-header .product-price,
+  .product-price.product-price-header {
     display: block !important;
-    font-size: 1.2rem;
-    font-weight: 600;
+    font-size: 1.15rem !important;
+    font-weight: 600 !important;
     white-space: nowrap;
+    color: var(--charcoal);
   }
 
   .product-category-chip {
