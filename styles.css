@@ -2612,13 +2612,13 @@ footer .container {
   }
 
   .product-name {
-    font-size: 0.85rem !important;
+    font-size: 0.95rem !important;
     line-height: 1.2;
   }
 
   .product-price-header {
     display: block !important;
-    font-size: 0.85rem !important;
+    font-size: 0.95rem !important;
     font-weight: 600 !important;
   }
 
@@ -2649,18 +2649,19 @@ footer .container {
   }
 
   .btn-add-cart {
-    flex: 1;
+    flex: 1 1 60%;
     min-width: 0;
-    font-size: 0.55rem;
-    padding: 0.4rem 0.3rem;
+    font-size: 0.75rem;
+    padding: 0.5rem 0.5rem;
     white-space: nowrap;
-    min-height: 32px;
+    min-height: 40px;
   }
 
   .btn-view-details {
-    font-size: 0.55rem;
-    padding: 0.4rem 0.5rem;
-    min-height: 32px;
+    flex: 1 1 40%;
+    font-size: 0.75rem;
+    padding: 0.5rem 0.5rem;
+    min-height: 40px;
   }
 }
 
@@ -5111,7 +5112,9 @@ button:focus {
     font-weight: 600 !important;
   }
 
-  .product-card .product-header .product-price {
+  .product-card .product-header .product-price,
+  .product-card .product-price.product-price-header,
+  .product-price.product-price-header {
     display: block !important;
     font-size: 1.1rem !important;
     font-weight: 600 !important;
