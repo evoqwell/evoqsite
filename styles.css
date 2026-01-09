@@ -5082,5 +5082,63 @@ button:focus {
   }
 }
 
+/* ============================================
+   MOBILE PRODUCT CARDS - FINAL OVERRIDE
+   Must be at end of file to take precedence
+   ============================================ */
+@media screen and (max-width: 768px) {
+  .products-grid {
+    grid-template-columns: 1fr !important;
+    gap: 0.75rem !important;
+  }
 
+  .product-card .product-image-container {
+    aspect-ratio: 16 / 10 !important;
+  }
 
+  .product-card .product-info {
+    padding: 0.6rem 0.875rem !important;
+  }
+
+  .product-card .product-header {
+    display: flex !important;
+    justify-content: space-between !important;
+    align-items: baseline !important;
+  }
+
+  .product-card .product-name {
+    font-size: 1.15rem !important;
+  }
+
+  .product-card .product-header .product-price {
+    display: block !important;
+    font-size: 1.15rem !important;
+    font-weight: 600 !important;
+  }
+
+  .product-card .product-footer > .product-price {
+    display: none !important;
+  }
+
+  .product-card .product-description {
+    display: none !important;
+  }
+
+  .product-card .product-footer {
+    margin-top: 0.5rem !important;
+    padding-top: 0.5rem !important;
+    border-top: 1px solid rgba(138, 125, 110, 0.2) !important;
+  }
+
+  .product-card .product-actions {
+    flex-direction: row !important;
+    gap: 0.4rem !important;
+  }
+
+  .product-card .btn-view-details,
+  .product-card .btn-add-cart {
+    min-height: 38px !important;
+    font-size: 0.75rem !important;
+    padding: 0.5rem 0.75rem !important;
+  }
+}
