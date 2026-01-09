@@ -2326,16 +2326,16 @@ footer .container {
   }
 
   .product-name {
-    font-size: 1.05rem;
+    font-size: 1.2rem;
     margin-bottom: 0;
     flex: 1;
     min-width: 0;
   }
 
-  /* Show header price on mobile */
+  /* Show header price on mobile - same size as name */
   .product-price-header {
     display: block !important;
-    font-size: 1.05rem;
+    font-size: 1.2rem;
     font-weight: 600;
     white-space: nowrap;
   }
