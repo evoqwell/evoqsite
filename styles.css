@@ -2018,10 +2018,17 @@ footer .container {
     height: 42px;
   }
 
-  /* Fullscreen hero responsive */
+  /* Fullscreen hero responsive (homepage only) */
   body:has(.hero-fullscreen) {
     overflow: hidden;
     height: 100svh;
+  }
+
+  /* Override for About/Contact - allow scrolling */
+  body:has(.hero-about),
+  body:has(.hero-contact) {
+    overflow: auto;
+    height: auto;
   }
 
   .hero-fullscreen {
