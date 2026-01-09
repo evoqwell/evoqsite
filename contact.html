@@ -44,10 +44,10 @@
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,600;1,400&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;1,400&family=DM+Sans:wght@400;500;600&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="/styles.css">
 </head>
-<body>
+<body class="contact-page">
     <header class="sticky-header" role="banner">
         <nav class="container-fluid">
             <div class="nav-content">
@@ -81,89 +81,55 @@
     </header>
 
     <main>
-        <section class="hero-section contact-hero" role="banner">
-            <div class="hero-overlay">
-                <h1 class="hero-title">Contact Us<img src="/lightning-bolt.svg" alt="EVOQ Lightning Bolt" class="hero-bolt"></h1>
+        <section class="hero-fullscreen hero-contact">
+            <div class="hero-bg">
+                <div class="hero-overlay"></div>
+            </div>
+            <div class="hero-content">
+                <h1 class="hero-headline">Let's Connect.</h1>
+                <p class="hero-subtext">Questions about our research materials?<br>We're here to help.</p>
+                <p class="hero-values">Responsive. Knowledgeable. Direct.</p>
             </div>
         </section>
 
-        <div class="container content-wrapper">
-            <section class="content-section fade-in" data-aos="fade-up">
-                <h2>Get in Touch<img src="/lightning-bolt.svg" alt="" class="section-bolt"></h2>
-                <p style="text-align: center; font-size: 1.1rem; margin-bottom: 3rem; color: var(--bone); opacity: 0.95;">Please feel free to reach out with questions via email or Instagram DM</p>
-
-                <div style="display: flex; flex-direction: column; gap: 2rem; max-width: 600px; margin: 0 auto; align-items: center;">
-                    <a href="mailto:evoqwell@gmail.com" class="contact-link">
-                        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                            <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"></path>
-                            <polyline points="22,6 12,13 2,6"></polyline>
-                        </svg>
-                        <span>evoqwell@gmail.com</span>
-                    </a>
-
-                    <a href="https://instagram.com/evoqwell" target="_blank" rel="noopener noreferrer" class="contact-link">
-                        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                            <rect x="2" y="2" width="20" height="20" rx="5" ry="5"></rect>
-                            <path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z"></path>
-                            <line x1="17.5" y1="6.5" x2="17.51" y2="6.5"></line>
-                        </svg>
-                        <span>@evoqwell</span>
-                    </a>
+        <section class="contact-methods">
+            <div class="container">
+                <div class="contact-grid">
+                    <div class="contact-card">
+                        <div class="contact-icon">
+                            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+                                <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"></path>
+                                <polyline points="22,6 12,13 2,6"></polyline>
+                            </svg>
+                        </div>
+                        <h3 class="contact-card-title">Email</h3>
+                        <p class="contact-card-text">General inquiries and support</p>
+                        <a href="mailto:evoqwell@gmail.com" class="contact-link-primary">evoqwell@gmail.com</a>
+                    </div>
+                    <div class="contact-card">
+                        <div class="contact-icon">
+                            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+                                <rect x="2" y="2" width="20" height="20" rx="5" ry="5"></rect>
+                                <path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z"></path>
+                                <line x1="17.5" y1="6.5" x2="17.51" y2="6.5"></line>
+                            </svg>
+                        </div>
+                        <h3 class="contact-card-title">Instagram</h3>
+                        <p class="contact-card-text">Updates and community</p>
+                        <a href="https://instagram.com/evoqwell" target="_blank" rel="noopener noreferrer" class="contact-link-primary">@evoqwell</a>
+                    </div>
                 </div>
+            </div>
+        </section>
 
-                <style>
-                    .contact-link {
-                        display: flex;
-                        align-items: center;
-                        gap: 1rem;
-                        padding: 1.5rem 2rem;
-                        background: rgba(255, 255, 255, 0.03);
-                        border: 1px solid rgba(198, 176, 137, 0.3);
-                        border-radius: 8px;
-                        text-decoration: none;
-                        color: var(--gold);
-                        font-size: 1.1rem;
-                        transition: all 0.3s ease;
-                        width: 100%;
-                        max-width: 400px;
-                    }
-                    .contact-link:hover {
-                        background: rgba(255, 255, 255, 0.06);
-                        border-color: var(--gold);
-                        transform: translateY(-2px);
-                        box-shadow: 0 4px 12px rgba(198, 176, 137, 0.2);
-                        color: var(--gold);
-                    }
-                    .contact-link:active {
-                        transform: translateY(0);
-                    }
-                    .contact-link svg {
-                        flex-shrink: 0;
-                    }
-                    @media (max-width: 768px) {
-                        .contact-link {
-                            max-width: 100%;
-                            font-size: 1rem;
-                            padding: 1.25rem 1.5rem;
-                        }
-                        .contact-hero h1 {
-                            font-size: 2.5rem;
-                        }
-                    }
-                    @media (max-width: 480px) {
-                        .contact-link {
-                            font-size: 0.95rem;
-                            padding: 1rem 1.25rem;
-                            gap: 0.75rem;
-                        }
-                        .contact-link svg {
-                            width: 20px;
-                            height: 20px;
-                        }
-                    }
-                </style>
-            </section>
-        </div>
+        <section class="contact-info">
+            <div class="container">
+                <div class="info-content">
+                    <h2 class="section-headline">Response Times</h2>
+                    <p class="info-text">We aim to respond to all inquiries within 24-48 hours during business days. For urgent research material questions, email is the fastest route.</p>
+                </div>
+            </div>
+        </section>
     </main>
 
     <footer role="contentinfo">

@@ -2,6 +2,7 @@ import { Router } from 'express';
 import { PageView } from '../models/PageView.js';
 import { z } from 'zod';
 import rateLimit from 'express-rate-limit';
+import { hashIp } from '../utils/ipAnonymizer.js';
 
 const router = Router();
 
@@ -23,8 +24,11 @@ router.post('/', trackingLimiter, async (req, res) => {
   try {
     const { page } = trackSchema.parse(req.body);
 
-    const ipAddress = req.ip || req.connection.remoteAddress || 'unknown';
+    const rawIp = req.ip || req.connection.remoteAddress || 'unknown';
     const userAgent = req.get('User-Agent') || '';
+
+    // Hash IP for GDPR compliance - no raw IPs stored
+    const ipAddress = hashIp(rawIp);
 
     await PageView.create({
       ipAddress,

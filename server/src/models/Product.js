@@ -57,9 +57,10 @@ const productSchema = new mongoose.Schema(
       default: 0,
       min: 0
     },
-    isActive: {
-      type: Boolean,
-      default: true
+    status: {
+      type: String,
+      enum: ['active', 'coming_soon', 'inactive'],
+      default: 'active'
     }
   },
   {
@@ -81,7 +82,6 @@ productSchema.set('toJSON', {
     }
     delete ret._id;
     delete ret.priceCents;
-    delete ret.isActive;
   }
 });
 

@@ -33,7 +33,7 @@ const productSchema = z.object({
   category: z.string().trim().optional().default(''),
   coa: z.string().trim().optional().default(''),
   stock: z.number().int().nonnegative().optional().default(0),
-  isActive: z.boolean().optional().default(true)
+  status: z.enum(['active', 'coming_soon', 'inactive']).optional().default('active')
 });
 
 const updateSchema = productSchema.partial().extend({
@@ -58,7 +58,7 @@ router.get('/', async (req, res, next) => {
         category: product.category,
         coa: product.coa,
         stock: product.stock,
-        isActive: product.isActive
+        status: product.status || 'active'
       }))
     });
   } catch (error) {
@@ -87,7 +87,7 @@ router.post('/', async (req, res, next) => {
       category: primaryCategory,
       coa: data.coa,
       stock: data.stock,
-      isActive: data.isActive
+      status: data.status
     });
 
     res.status(201).json({
@@ -100,7 +100,7 @@ router.post('/', async (req, res, next) => {
       category: product.category,
       coa: product.coa,
       stock: product.stock,
-      isActive: product.isActive
+      status: product.status
     });
   } catch (error) {
     next(error);
@@ -154,7 +154,7 @@ router.put('/:sku', async (req, res, next) => {
       category: product.category,
       coa: product.coa,
       stock: product.stock,
-      isActive: product.isActive
+      status: product.status || 'active'
     });
   } catch (error) {
     next(error);

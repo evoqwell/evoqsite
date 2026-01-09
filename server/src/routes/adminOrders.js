@@ -3,6 +3,7 @@ import { requireAdmin } from '../middleware/adminAuth.js';
 import { Order } from '../models/Order.js';
 import { z } from 'zod';
 import { centsToDollars } from '../utils/money.js';
+import { decryptCustomerData } from '../utils/encryption.js';
 
 const router = Router();
 
@@ -30,7 +31,7 @@ router.get('/', async (req, res, next) => {
           price: centsToDollars(item.priceCents),
           lineTotal: centsToDollars(item.lineTotalCents)
         })),
-        customer: order.customer,
+        customer: decryptCustomerData(order.customer),
         createdAt: order.createdAt
       }))
     });

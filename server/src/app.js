@@ -8,6 +8,14 @@ import {
   sanitizeBody,
   additionalSecurityHeaders
 } from './middleware/security.js';
+import { csrfProtection, getCsrfToken } from './middleware/csrf.js';
+import {
+  requireAdmin,
+  adminLogin,
+  adminLogout,
+  refreshToken,
+  getSessionInfo
+} from './middleware/adminAuth.js';
 import productsRouter from './routes/products.js';
 import promosRouter from './routes/promos.js';
 import ordersRouter from './routes/orders.js';
@@ -46,7 +54,7 @@ app.use(
       }
     },
     credentials: true,
-    allowedHeaders: ['Content-Type', 'X-Admin-Token'],
+    allowedHeaders: ['Content-Type', 'X-Admin-Token', 'Authorization'],
     methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS']
   })
 );
@@ -65,9 +73,19 @@ app.get('/api/health', (req, res) => {
   res.json({ status: 'ok' });
 });
 
+// CSRF token endpoint
+app.get('/api/csrf-token', getCsrfToken);
+
+// Admin authentication endpoints
+app.post('/api/admin/login', authLimiter, adminLogin);
+app.post('/api/admin/logout', requireAdmin, adminLogout);
+app.post('/api/admin/refresh-token', requireAdmin, refreshToken);
+app.get('/api/admin/session', requireAdmin, getSessionInfo);
+
 app.use('/api/products', productsRouter);
 app.use('/api/promos', promosRouter);
-app.use('/api/orders', ordersRouter);
+// Apply CSRF protection to orders endpoint (state-changing operations)
+app.use('/api/orders', csrfProtection, ordersRouter);
 app.use('/api/track', trackingRouter);
 app.use('/api/admin/products', adminProductsRouter);
 app.use('/api/admin/promos', adminPromosRouter);

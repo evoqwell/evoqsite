@@ -44,10 +44,10 @@
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,600;1,400&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;1,400&family=DM+Sans:wght@400;500;600&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="/styles.css">
 </head>
-<body>
+<body class="about-page">
     <header class="sticky-header" role="banner">
         <nav class="container-fluid">
             <div class="nav-content">
@@ -81,19 +81,57 @@
     </header>
 
     <main>
-        <section class="hero-section about-hero" role="banner">
-            <div class="hero-overlay">
-                <h1 class="hero-title">About EVOQ<img src="/lightning-bolt.svg" alt="EVOQ Lightning Bolt" class="hero-bolt"></h1>
+        <section class="hero-fullscreen hero-about">
+            <div class="hero-bg">
+                <div class="hero-overlay"></div>
+            </div>
+            <div class="hero-content">
+                <h1 class="hero-headline">The EVOQ<br>Standard.</h1>
+                <p class="hero-subtext">Where science meets intention.<br>Where purity becomes practice.</p>
+                <p class="hero-values">Research-Grade. Verified. Uncompromising.</p>
             </div>
         </section>
 
-        <div class="container content-wrapper">
-            <section class="content-section fade-in">
-                <h2>About EVOQ<img src="/lightning-bolt.svg" alt="" class="section-bolt"></h2>
-                <p>EVOQ Wellness was founded to redefine modern health through a fusion of science and lifestyle. Built at the intersection of research-grade innovation and real-world application, EVOQ creates clinically inspired formulations designed for performance, recovery, and longevity — without compromising purity or design.</p>
-                <p>Rooted in integrity, innovation, and evolution, EVOQ represents a higher standard of wellness for those who demand results backed by intention and transparency.</p>
-            </section>
-        </div>
+        <section class="about-philosophy">
+            <div class="container">
+                <div class="philosophy-content">
+                    <span class="section-label">Our Philosophy</span>
+                    <h2 class="section-headline">Built for Those<br>Who Demand More.</h2>
+                    <p class="philosophy-text">EVOQ was founded on a singular conviction: that those pursuing advanced metabolic research deserve materials that match their commitment. No compromise. No shortcuts. Just verified purity, transparent sourcing, and the precision that serious research demands.</p>
+                </div>
+            </div>
+        </section>
+
+        <section class="about-pillars">
+            <div class="container">
+                <div class="pillars-grid">
+                    <div class="pillar-card">
+                        <span class="pillar-number">01</span>
+                        <h3 class="pillar-title">Verified Purity</h3>
+                        <p class="pillar-text">Every batch tested. Every COA published. No exceptions.</p>
+                    </div>
+                    <div class="pillar-card">
+                        <span class="pillar-number">02</span>
+                        <h3 class="pillar-title">Scientific Integrity</h3>
+                        <p class="pillar-text">Research-grade formulations designed for legitimate study.</p>
+                    </div>
+                    <div class="pillar-card">
+                        <span class="pillar-number">03</span>
+                        <h3 class="pillar-title">Uncompromising Standards</h3>
+                        <p class="pillar-text">The materials you trust. The transparency you deserve.</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <section class="about-cta">
+            <div class="container">
+                <div class="cta-content">
+                    <h2 class="cta-headline">Ready to Begin?</h2>
+                    <a href="/shop.html" class="hero-cta">Explore Collection</a>
+                </div>
+            </div>
+        </section>
     </main>
 
     <footer role="contentinfo">

@@ -2,27 +2,62 @@ import helmet from 'helmet';
 import rateLimit from 'express-rate-limit';
 import mongoSanitize from 'express-mongo-sanitize';
 import xss from 'xss';
+import crypto from 'crypto';
+import { anonymizeIpForLog } from '../utils/ipAnonymizer.js';
+
+// Generate nonce for inline scripts (for future use when moving to nonce-based CSP)
+export function generateNonce() {
+  return crypto.randomBytes(16).toString('base64');
+}
+
+// Middleware to add nonce to request (for future nonce-based CSP)
+export function addCspNonce(req, res, next) {
+  res.locals.cspNonce = generateNonce();
+  next();
+}
 
 // Security headers with Helmet
+// NOTE: 'unsafe-inline' is currently required for inline scripts/styles in the static HTML files.
+// To remove 'unsafe-inline', all inline scripts and styles must be moved to external files
+// or use nonce-based CSP with dynamically generated HTML.
 export const helmetMiddleware = helmet({
   contentSecurityPolicy: {
     directives: {
       defaultSrc: ["'self'"],
-      styleSrc: ["'self'", "'unsafe-inline'", "https://fonts.googleapis.com", "https://cdn.jsdelivr.net"],
-      scriptSrc: ["'self'", "'unsafe-inline'", "https://cdn.jsdelivr.net"],
-      fontSrc: ["'self'", "https://fonts.gstatic.com"],
-      imgSrc: ["'self'", "data:", "https:"],
-      connectSrc: ["'self'", "https://evoqsite-production.up.railway.app"],
+      styleSrc: [
+        "'self'",
+        "'unsafe-inline'", // Required until inline styles are moved to external CSS
+        "https://fonts.googleapis.com",
+        "https://cdn.jsdelivr.net"
+      ],
+      scriptSrc: [
+        "'self'",
+        "'unsafe-inline'", // Required until inline scripts are moved to external JS
+        "https://cdn.jsdelivr.net"
+      ],
+      fontSrc: ["'self'", "https://fonts.gstatic.com", "data:"],
+      imgSrc: ["'self'", "data:", "https:", "blob:"],
+      connectSrc: [
+        "'self'",
+        "https://evoqsite-production.up.railway.app",
+        "https://api.emailjs.com" // For EmailJS
+      ],
       objectSrc: ["'none'"],
+      baseUri: ["'self'"],
+      formAction: ["'self'"],
+      frameAncestors: ["'none'"], // Prevent clickjacking
       upgradeInsecureRequests: [],
     },
   },
   crossOriginEmbedderPolicy: false, // Allow embedding if needed
+  crossOriginOpenerPolicy: { policy: 'same-origin' },
+  crossOriginResourcePolicy: { policy: 'same-origin' },
   hsts: {
     maxAge: 31536000,
     includeSubDomains: true,
     preload: true
-  }
+  },
+  referrerPolicy: { policy: 'strict-origin-when-cross-origin' }
 });
 
 // General rate limiter (100 requests per 15 minutes)
@@ -71,7 +106,7 @@ export const promoLimiter = rateLimit({
 export const mongoSanitizeMiddleware = mongoSanitize({
   replaceWith: '_',
   onSanitize: ({ req, key }) => {
-    console.warn(`[Security] Attempted NoSQL injection in ${key} from IP ${req.ip}`);
+    console.warn(`[Security] Attempted NoSQL injection in ${key} from IP ${anonymizeIpForLog(req.ip)}`);
   }
 });
 
@@ -106,10 +141,11 @@ export function sanitizeBody(req, res, next) {
 
 // Security event logger
 export function logSecurityEvent(eventType, details, req) {
+  const rawIp = req.ip || req.connection.remoteAddress;
   const event = {
     type: eventType,
     timestamp: new Date().toISOString(),
-    ip: req.ip || req.connection.remoteAddress,
+    ip: anonymizeIpForLog(rawIp), // GDPR: anonymize IP in logs
     userAgent: req.get('User-Agent'),
     path: req.path,
     method: req.method,

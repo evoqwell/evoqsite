@@ -9,7 +9,12 @@
   deleteAdminPromo,
   fetchAdminOrders,
   updateAdminOrderStatus,
-  fetchAdminAnalytics
+  fetchAdminAnalytics,
+  adminLogin,
+  adminLogout,
+  restoreSession,
+  isAuthenticated,
+  setSessionCallbacks
 } from './lib/adminApi.js';
 
 let adminToken = '';
@@ -79,15 +84,36 @@ function formatCategoriesForInput(product) {
 }
 
 function initializeAdmin() {
+  // Set up session callbacks for JWT auth
+  setSessionCallbacks({
+    onWarning: (minutes) => {
+      showStatus(`Session expires in ${minutes} minutes. Your session will refresh automatically.`, 'info');
+    },
+    onExpired: () => {
+      showStatus('Session expired. Please log in again.', 'error');
+      adminToken = '';
+      if (tokenInput) {
+        tokenInput.value = '';
+        tokenInput.focus();
+      }
+    }
+  });
+
   if (connectForm) {
     connectForm.addEventListener('submit', handleConnect);
   }
 
-  const savedToken = sessionStorage.getItem('evoq_admin_token');
-  if (savedToken) {
-    tokenInput.value = savedToken;
-    adminToken = savedToken;
+  // Try to restore JWT session first
+  if (restoreSession()) {
     loadDashboard();
+  } else {
+    // Fall back to legacy token check
+    const savedToken = sessionStorage.getItem('evoq_admin_token');
+    if (savedToken) {
+      tokenInput.value = savedToken;
+      adminToken = savedToken;
+      loadDashboard();
+    }
   }
 
   if (productCreateForm) {
@@ -96,6 +122,12 @@ function initializeAdmin() {
 
   if (promoCreateForm) {
     promoCreateForm.addEventListener('submit', handleCreatePromo);
+  }
+
+  // Add logout button handler
+  const logoutBtn = document.getElementById('admin-logout-btn');
+  if (logoutBtn) {
+    logoutBtn.addEventListener('click', handleLogout);
   }
 
   initializeAnalytics();
@@ -121,13 +153,42 @@ async function handleConnect(event) {
     return;
   }
 
-  adminToken = token;
-  sessionStorage.setItem('evoq_admin_token', token);
-  await loadDashboard();
+  showStatus('Authenticating...', 'info');
+
+  try {
+    // Use JWT login
+    await adminLogin(token);
+    adminToken = token; // Keep for legacy compatibility
+    showStatus('Login successful!', 'info');
+    await loadDashboard();
+  } catch (error) {
+    console.error('[admin] Login failed:', error);
+    showStatus(error.message || 'Login failed. Please check your access token.', 'error');
+  }
+}
+
+async function handleLogout() {
+  try {
+    await adminLogout();
+    adminToken = '';
+    if (tokenInput) {
+      tokenInput.value = '';
+    }
+    showStatus('Logged out successfully.', 'info');
+
+    // Clear displayed data
+    if (productsContainer) productsContainer.textContent = '';
+    if (promosContainer) promosContainer.textContent = '';
+    if (ordersContainer) ordersContainer.textContent = '';
+  } catch (error) {
+    console.error('[admin] Logout error:', error);
+    showStatus('Logout completed.', 'info');
+  }
 }
 
 async function loadDashboard() {
-  if (!adminToken) {
+  // Check for JWT auth or legacy token
+  if (!isAuthenticated() && !adminToken) {
     showStatus('Enter admin token to begin.', 'info');
     return;
   }
@@ -167,94 +228,133 @@ function renderProducts(products) {
   if (!productsContainer) return;
 
   if (!products.length) {
-    productsContainer.innerHTML = '<p class="admin-empty">No products found.</p>';
+    productsContainer.textContent = '';
+    const emptyMsg = createElement('p', { className: 'admin-empty', textContent: 'No products found.' });
+    productsContainer.appendChild(emptyMsg);
     return;
   }
 
-  productsContainer.innerHTML = '';
+  productsContainer.textContent = '';
 
   // Create list container
-  const listContainer = document.createElement('div');
-  listContainer.className = 'admin-list-container';
+  const listContainer = createElement('div', { className: 'admin-list-container' });
 
   products.forEach((product) => {
-    const listItem = document.createElement('div');
-    listItem.className = 'admin-list-item';
-    listItem.dataset.sku = product.sku;
+    const listItem = createElement('div', { className: 'admin-list-item', 'data-sku': product.sku });
 
-    // Create summary section
-    const summary = document.createElement('div');
-    summary.className = 'admin-list-summary';
+    // Create summary section using safe DOM methods
+    const summary = createElement('div', { className: 'admin-list-summary' });
 
     const stockBadgeClass = product.stock > 0 ? 'success' : 'danger';
     const stockText = product.stock > 0 ? `Stock: ${product.stock}` : 'Out of Stock';
-    const activeBadgeClass = product.isActive ? 'success' : '';
 
-    summary.innerHTML = `
-      <div class="admin-list-summary-content">
-        <h3 class="admin-list-title">${escapeHtml(product.name)}</h3>
-        <div class="admin-list-meta">
-          <span>SKU: ${escapeHtml(product.sku)}</span>
-          <span>$${Number(product.price).toFixed(2)}</span>
-          <span class="admin-list-badge ${stockBadgeClass}">${stockText}</span>
-          ${product.isActive ? '<span class="admin-list-badge success">Active</span>' : '<span class="admin-list-badge">Inactive</span>'}
-        </div>
-      </div>
-      <svg class="admin-list-expand-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path>
-      </svg>
-    `;
+    const summaryContent = createElement('div', { className: 'admin-list-summary-content' });
+    const title = createElement('h3', { className: 'admin-list-title', textContent: product.name });
+    summaryContent.appendChild(title);
 
-    // Create details section with form
-    const details = document.createElement('div');
-    details.className = 'admin-list-details';
+    const meta = createElement('div', { className: 'admin-list-meta' });
+    meta.appendChild(createElement('span', { textContent: `SKU: ${product.sku}` }));
+    meta.appendChild(createElement('span', { textContent: `$${Number(product.price).toFixed(2)}` }));
+    meta.appendChild(createElement('span', { className: `admin-list-badge ${stockBadgeClass}`, textContent: stockText }));
+    const statusLabels = { active: 'Active', coming_soon: 'Coming Soon', inactive: 'Inactive' };
+    const statusClasses = { active: 'success', coming_soon: 'warning', inactive: '' };
+    const productStatus = product.status || 'active';
+    meta.appendChild(createElement('span', {
+      className: `admin-list-badge ${statusClasses[productStatus] || ''}`.trim(),
+      textContent: statusLabels[productStatus] || productStatus
+    }));
+    summaryContent.appendChild(meta);
+    summary.appendChild(summaryContent);
 
-    const form = document.createElement('form');
-    form.className = 'admin-list-details-form';
-    const categoriesValue = escapeHtml(formatCategoriesForInput(product));
+    // Create expand icon (static SVG is safe)
+    const expandIcon = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+    expandIcon.setAttribute('class', 'admin-list-expand-icon');
+    expandIcon.setAttribute('fill', 'none');
+    expandIcon.setAttribute('stroke', 'currentColor');
+    expandIcon.setAttribute('viewBox', '0 0 24 24');
+    const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+    path.setAttribute('stroke-linecap', 'round');
+    path.setAttribute('stroke-linejoin', 'round');
+    path.setAttribute('stroke-width', '2');
+    path.setAttribute('d', 'M9 5l7 7-7 7');
+    expandIcon.appendChild(path);
+    summary.appendChild(expandIcon);
 
-    form.innerHTML = `
-      <div class="admin-card-body">
-        <label>
-          Name
-          <input type="text" name="name" value="${escapeHtml(product.name)}" required>
-        </label>
-        <label>
-          Description
-          <textarea name="description" rows="3">${escapeHtml(product.description || '')}</textarea>
-        </label>
-        <div class="admin-grid">
-          <label>
-            Price (USD)
-            <input type="number" name="price" min="0" step="0.01" value="${Number(product.price).toFixed(2)}" required>
-          </label>
-          <label>
-            Stock
-            <input type="number" name="stock" min="0" step="1" value="${Number(product.stock || 0)}">
-          </label>
-        </div>
-        <label>
-          Image Path
-          <input type="text" name="image" value="${escapeHtml(product.image || '')}">
-        </label>
-        <label>
-          Categories
-          <input type="text" name="categories" value="${categoriesValue}" placeholder="e.g., Skin, Metabolism">
-        </label>
-        <label>
-          COA File Path
-          <input type="text" name="coa" value="${escapeHtml(product.coa || '')}" placeholder="/COAs/filename.pdf">
-        </label>
-        <label class="admin-inline">
-          <input type="checkbox" name="isActive" ${product.isActive ? 'checked' : ''}>
-          Active
-        </label>
-      </div>
-      <footer class="admin-list-actions">
-        <button type="submit" class="btn-primary">Save</button>
-        <button type="button" class="btn-danger" data-action="delete">Delete</button>
-      </footer>
-    `;
+    // Create details section with form using safe DOM methods
+    const details = createElement('div', { className: 'admin-list-details' });
+    const form = createElement('form', { className: 'admin-list-details-form' });
+
+    const cardBody = createElement('div', { className: 'admin-card-body' });
+
+    // Name field
+    const nameLabel = createElement('label', {}, ['Name']);
+    const nameInput = createElement('input', { type: 'text', name: 'name', value: product.name, required: true });
+    nameLabel.appendChild(nameInput);
+    cardBody.appendChild(nameLabel);
+
+    // Description field
+    const descLabel = createElement('label', {}, ['Description']);
+    const descTextarea = createElement('textarea', { name: 'description', rows: '3', textContent: product.description || '' });
+    descLabel.appendChild(descTextarea);
+    cardBody.appendChild(descLabel);
+
+    // Price and Stock grid
+    const grid = createElement('div', { className: 'admin-grid' });
+    const priceLabel = createElement('label', {}, ['Price (USD)']);
+    const priceInput = createElement('input', { type: 'number', name: 'price', min: '0', step: '0.01', value: Number(product.price).toFixed(2), required: true });
+    priceLabel.appendChild(priceInput);
+    grid.appendChild(priceLabel);
+
+    const stockLabel = createElement('label', {}, ['Stock']);
+    const stockInput = createElement('input', { type: 'number', name: 'stock', min: '0', step: '1', value: String(Number(product.stock || 0)) });
+    stockLabel.appendChild(stockInput);
+    grid.appendChild(stockLabel);
+    cardBody.appendChild(grid);
+
+    // Image field
+    const imageLabel = createElement('label', {}, ['Image Path']);
+    const imageInput = createElement('input', { type: 'text', name: 'image', value: product.image || '' });
+    imageLabel.appendChild(imageInput);
+    cardBody.appendChild(imageLabel);
+
+    // Categories field
+    const catLabel = createElement('label', {}, ['Categories']);
+    const catInput = createElement('input', { type: 'text', name: 'categories', value: formatCategoriesForInput(product), placeholder: 'e.g., Skin, Metabolism' });
+    catLabel.appendChild(catInput);
+    cardBody.appendChild(catLabel);
+
+    // COA field
+    const coaLabel = createElement('label', {}, ['COA File Path']);
+    const coaInput = createElement('input', { type: 'text', name: 'coa', value: product.coa || '', placeholder: '/COAs/filename.pdf' });
+    coaLabel.appendChild(coaInput);
+    cardBody.appendChild(coaLabel);
+
+    // Status dropdown
+    const statusLabel = createElement('label', {}, ['Status']);
+    const statusSelect = createElement('select', { name: 'status' });
+    const statusOptions = [
+      { value: 'active', text: 'Active' },
+      { value: 'coming_soon', text: 'Coming Soon' },
+      { value: 'inactive', text: 'Inactive' }
+    ];
+    const currentStatus = product.status || 'active';
+    statusOptions.forEach(opt => {
+      const option = createElement('option', { value: opt.value, textContent: opt.text });
+      if (opt.value === currentStatus) option.selected = true;
+      statusSelect.appendChild(option);
+    });
+    statusLabel.appendChild(statusSelect);
+    cardBody.appendChild(statusLabel);
+
+    form.appendChild(cardBody);
+
+    // Footer with buttons
+    const footer = createElement('footer', { className: 'admin-list-actions' });
+    const saveBtn = createElement('button', { type: 'submit', className: 'btn-primary', textContent: 'Save' });
+    const deleteBtn = createElement('button', { type: 'button', className: 'btn-danger', 'data-action': 'delete', textContent: 'Delete' });
+    footer.appendChild(saveBtn);
+    footer.appendChild(deleteBtn);
+    form.appendChild(footer);
 
     // Add event listeners
     summary.addEventListener('click', () => {
@@ -262,7 +362,6 @@ function renderProducts(products) {
     });
 
     form.addEventListener('submit', (event) => handleUpdateProduct(event, product.sku));
-    const deleteBtn = form.querySelector('[data-action="delete"]');
     deleteBtn.addEventListener('click', () => handleDeleteProduct(product.sku));
 
     details.appendChild(form);
@@ -278,50 +377,71 @@ function renderPromos(promos) {
   if (!promosContainer) return;
 
   if (!promos.length) {
-    promosContainer.innerHTML = '<p class="admin-empty">No promo codes found.</p>';
+    promosContainer.textContent = '';
+    const emptyMsg = createElement('p', { className: 'admin-empty', textContent: 'No promo codes found.' });
+    promosContainer.appendChild(emptyMsg);
     return;
   }
 
-  promosContainer.innerHTML = '';
+  promosContainer.textContent = '';
   promos.forEach((promo) => {
-    const form = document.createElement('form');
-    form.className = 'admin-card';
-    form.dataset.code = promo.code;
-    form.innerHTML = `
-      <header class="admin-card-header">
-        <h3>${escapeHtml(promo.code)}</h3>
-      </header>
-      <div class="admin-card-body">
-        <label>
-          Description
-          <textarea name="description" rows="2">${escapeHtml(promo.description || '')}</textarea>
-        </label>
-        <div class="admin-grid">
-          <label>
-            Discount Type
-            <select name="discountType">
-              <option value="percentage" ${promo.discountType === 'percentage' ? 'selected' : ''}>Percentage</option>
-              <option value="fixed" ${promo.discountType === 'fixed' ? 'selected' : ''}>Fixed Amount</option>
-            </select>
-          </label>
-          <label>
-            Discount Value
-            <input type="number" name="discountValue" min="0" step="0.01" value="${Number(promo.discountValue).toFixed(2)}" required>
-          </label>
-        </div>
-        <label class="admin-inline">
-          <input type="checkbox" name="isActive" ${promo.isActive ? 'checked' : ''}>
-          Active
-        </label>
-      </div>
-      <footer class="admin-card-actions">
-        <button type="submit" class="btn-primary">Save</button>
-        <button type="button" class="btn-danger" data-action="delete">Delete</button>
-      </footer>
-    `;
+    const form = createElement('form', { className: 'admin-card', 'data-code': promo.code });
+
+    // Header
+    const header = createElement('header', { className: 'admin-card-header' });
+    const headerTitle = createElement('h3', { textContent: promo.code });
+    header.appendChild(headerTitle);
+    form.appendChild(header);
+
+    // Card body
+    const cardBody = createElement('div', { className: 'admin-card-body' });
+
+    // Description field
+    const descLabel = createElement('label', {}, ['Description']);
+    const descTextarea = createElement('textarea', { name: 'description', rows: '2', textContent: promo.description || '' });
+    descLabel.appendChild(descTextarea);
+    cardBody.appendChild(descLabel);
+
+    // Grid for type and value
+    const grid = createElement('div', { className: 'admin-grid' });
+
+    // Discount Type
+    const typeLabel = createElement('label', {}, ['Discount Type']);
+    const typeSelect = createElement('select', { name: 'discountType' });
+    const percentOption = createElement('option', { value: 'percentage', textContent: 'Percentage' });
+    const fixedOption = createElement('option', { value: 'fixed', textContent: 'Fixed Amount' });
+    if (promo.discountType === 'percentage') percentOption.selected = true;
+    if (promo.discountType === 'fixed') fixedOption.selected = true;
+    typeSelect.appendChild(percentOption);
+    typeSelect.appendChild(fixedOption);
+    typeLabel.appendChild(typeSelect);
+    grid.appendChild(typeLabel);
+
+    // Discount Value
+    const valueLabel = createElement('label', {}, ['Discount Value']);
+    const valueInput = createElement('input', { type: 'number', name: 'discountValue', min: '0', step: '0.01', value: Number(promo.discountValue).toFixed(2), required: true });
+    valueLabel.appendChild(valueInput);
+    grid.appendChild(valueLabel);
+    cardBody.appendChild(grid);
+
+    // Active checkbox
+    const activeLabel = createElement('label', { className: 'admin-inline' });
+    const activeCheckbox = createElement('input', { type: 'checkbox', name: 'isActive', checked: promo.isActive });
+    activeLabel.appendChild(activeCheckbox);
+    activeLabel.appendChild(createTextNode(' Active'));
+    cardBody.appendChild(activeLabel);
+
+    form.appendChild(cardBody);
+
+    // Footer
+    const footer = createElement('footer', { className: 'admin-card-actions' });
+    const saveBtn = createElement('button', { type: 'submit', className: 'btn-primary', textContent: 'Save' });
+    const deleteBtn = createElement('button', { type: 'button', className: 'btn-danger', 'data-action': 'delete', textContent: 'Delete' });
+    footer.appendChild(saveBtn);
+    footer.appendChild(deleteBtn);
+    form.appendChild(footer);
 
     form.addEventListener('submit', (event) => handleUpdatePromo(event, promo.code));
-    const deleteBtn = form.querySelector('[data-action="delete"]');
     deleteBtn.addEventListener('click', () => handleDeletePromo(promo.code));
     promosContainer.appendChild(form);
   });
@@ -331,11 +451,13 @@ function renderOrders(orders) {
   if (!ordersContainer) return;
 
   if (!orders.length) {
-    ordersContainer.innerHTML = '<p class="admin-empty">No orders yet.</p>';
+    ordersContainer.textContent = '';
+    const emptyMsg = createElement('p', { className: 'admin-empty', textContent: 'No orders yet.' });
+    ordersContainer.appendChild(emptyMsg);
     return;
   }
 
-  ordersContainer.innerHTML = '';
+  ordersContainer.textContent = '';
 
   // Calculate pagination
   const totalOrders = orders.length;
@@ -345,17 +467,13 @@ function renderOrders(orders) {
   const paginatedOrders = orders.slice(startIndex, endIndex);
 
   // Create list container
-  const listContainer = document.createElement('div');
-  listContainer.className = 'admin-list-container';
+  const listContainer = createElement('div', { className: 'admin-list-container' });
 
   paginatedOrders.forEach((order) => {
-    const listItem = document.createElement('div');
-    listItem.className = 'admin-list-item';
-    listItem.dataset.orderNumber = order.orderNumber;
+    const listItem = createElement('div', { className: 'admin-list-item', 'data-order-number': order.orderNumber });
 
-    // Create summary section
-    const summary = document.createElement('div');
-    summary.className = 'admin-list-summary';
+    // Create summary section using safe DOM methods
+    const summary = createElement('div', { className: 'admin-list-summary' });
 
     const statusBadgeClass = {
       pending_payment: 'warning',
@@ -366,101 +484,164 @@ function renderOrders(orders) {
 
     const statusDisplay = order.status.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
 
-    summary.innerHTML = `
-      <div class="admin-list-summary-content">
-        <h3 class="admin-list-title">Order #${order.orderNumber}</h3>
-        <div class="admin-list-meta">
-          <span>${escapeHtml(order.customer.name)}</span>
-          <span>$${Number(order.totals.total).toFixed(2)}</span>
-          <span>${new Date(order.createdAt).toLocaleDateString()}</span>
-          <span class="admin-list-badge ${statusBadgeClass}">${statusDisplay}</span>
-        </div>
-      </div>
-      <svg class="admin-list-expand-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path>
-      </svg>
-    `;
+    const summaryContent = createElement('div', { className: 'admin-list-summary-content' });
+    const title = createElement('h3', { className: 'admin-list-title', textContent: `Order #${order.orderNumber}` });
+    summaryContent.appendChild(title);
 
-    // Create details section
-    const details = document.createElement('div');
-    details.className = 'admin-list-details';
+    const meta = createElement('div', { className: 'admin-list-meta' });
+    meta.appendChild(createElement('span', { textContent: order.customer.name }));
+    meta.appendChild(createElement('span', { textContent: `$${Number(order.totals.total).toFixed(2)}` }));
+    meta.appendChild(createElement('span', { textContent: new Date(order.createdAt).toLocaleDateString() }));
+    meta.appendChild(createElement('span', { className: `admin-list-badge ${statusBadgeClass}`, textContent: statusDisplay }));
+    summaryContent.appendChild(meta);
+    summary.appendChild(summaryContent);
 
-    const itemsList = order.items
-      .map(
-        (item) =>
-          `<li>${escapeHtml(item.name)} x ${item.quantity} - $${Number(item.lineTotal).toFixed(2)}</li>`
-      )
-      .join('');
+    // Create expand icon (static SVG is safe)
+    const expandIcon = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+    expandIcon.setAttribute('class', 'admin-list-expand-icon');
+    expandIcon.setAttribute('fill', 'none');
+    expandIcon.setAttribute('stroke', 'currentColor');
+    expandIcon.setAttribute('viewBox', '0 0 24 24');
+    const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+    path.setAttribute('stroke-linecap', 'round');
+    path.setAttribute('stroke-linejoin', 'round');
+    path.setAttribute('stroke-width', '2');
+    path.setAttribute('d', 'M9 5l7 7-7 7');
+    expandIcon.appendChild(path);
+    summary.appendChild(expandIcon);
 
-    const statusOptions = ['pending_payment', 'paid', 'fulfilled', 'cancelled']
-      .map(
-        (status) =>
-          `<option value="${status}" ${order.status === status ? 'selected' : ''}>${status.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())}</option>`
-      )
-      .join('');
+    // Create details section using safe DOM methods
+    const details = createElement('div', { className: 'admin-list-details' });
+    const detailsForm = createElement('div', { className: 'admin-list-details-form' });
+    const cardBody = createElement('div', { className: 'admin-card-body' });
 
-    details.innerHTML = `
-      <div class="admin-list-details-form">
-        <div class="admin-card-body">
-          <div class="admin-grid">
-            <div>
-              <label>
-                Order Status
-                <select data-order-status="${order.orderNumber}">
-                  ${statusOptions}
-                </select>
-              </label>
-              <button type="button" class="btn-primary" data-update-status="${order.orderNumber}" style="margin-top: 8px;">
-                Update Status
-              </button>
-            </div>
-            <div>
-              <strong>Order Date:</strong><br>
-              ${new Date(order.createdAt).toLocaleString()}
-            </div>
-          </div>
+    // Status and Date grid
+    const statusGrid = createElement('div', { className: 'admin-grid' });
 
-          <div>
-            <strong>Customer Information:</strong><br>
-            ${escapeHtml(order.customer.name)}<br>
-            ${escapeHtml(order.customer.email)}<br>
-            ${order.customer.phone ? escapeHtml(order.customer.phone) + '<br>' : ''}
-          </div>
+    // Status select
+    const statusDiv = createElement('div');
+    const statusLabel = createElement('label', {}, ['Order Status']);
+    const select = createElement('select', { 'data-order-status': order.orderNumber });
+    ['pending_payment', 'paid', 'fulfilled', 'cancelled'].forEach((status) => {
+      const option = createElement('option', {
+        value: status,
+        textContent: status.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())
+      });
+      if (order.status === status) option.selected = true;
+      select.appendChild(option);
+    });
+    statusLabel.appendChild(select);
+    statusDiv.appendChild(statusLabel);
 
-          <div>
-            <strong>Shipping Address:</strong><br>
-            ${escapeHtml(order.customer.address)}<br>
-            ${escapeHtml(order.customer.city)}, ${escapeHtml(order.customer.state)} ${escapeHtml(order.customer.zip)}
-          </div>
+    const updateBtn = createElement('button', {
+      type: 'button',
+      className: 'btn-primary',
+      'data-update-status': order.orderNumber,
+      style: 'margin-top: 8px;',
+      textContent: 'Update Status'
+    });
+    statusDiv.appendChild(updateBtn);
 
-          <div>
-            <strong>Order Items:</strong>
-            <ul class="admin-order-list">${itemsList}</ul>
-          </div>
+    // Print Packing Slip button
+    const printBtn = createElement('button', {
+      type: 'button',
+      className: 'btn-secondary',
+      style: 'margin-top: 8px; margin-left: 8px;',
+      textContent: 'Print Slip'
+    });
+    printBtn.addEventListener('click', (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      printPackingSlip(order);
+    });
+    statusDiv.appendChild(printBtn);
+    statusGrid.appendChild(statusDiv);
 
-          <div class="admin-grid">
-            <div>
-              <strong>Subtotal:</strong> $${Number(order.totals.subtotal).toFixed(2)}<br>
-              <strong>Shipping:</strong> $${Number(order.totals.shipping).toFixed(2)}<br>
-              ${order.totals.discount ? `<strong>Discount:</strong> -$${Number(order.totals.discount).toFixed(2)}<br>` : ''}
-              <strong>Total:</strong> $${Number(order.totals.total).toFixed(2)}
-            </div>
-            <div>
-              ${order.promoCode ? `<strong>Promo Code:</strong> ${escapeHtml(order.promoCode)}<br>` : ''}
-              ${order.venmoNote ? `<strong>Venmo Note:</strong> ${escapeHtml(order.venmoNote)}` : ''}
-            </div>
-          </div>
-        </div>
-      </div>
-    `;
+    // Order date
+    const dateDiv = createElement('div');
+    const dateStrong = createElement('strong', { textContent: 'Order Date:' });
+    dateDiv.appendChild(dateStrong);
+    dateDiv.appendChild(createElement('br'));
+    dateDiv.appendChild(createTextNode(new Date(order.createdAt).toLocaleString()));
+    statusGrid.appendChild(dateDiv);
+    cardBody.appendChild(statusGrid);
+
+    // Customer information
+    const customerDiv = createElement('div');
+    customerDiv.appendChild(createElement('strong', { textContent: 'Customer Information:' }));
+    customerDiv.appendChild(createElement('br'));
+    customerDiv.appendChild(createTextNode(order.customer.name));
+    customerDiv.appendChild(createElement('br'));
+    customerDiv.appendChild(createTextNode(order.customer.email));
+    customerDiv.appendChild(createElement('br'));
+    if (order.customer.phone) {
+      customerDiv.appendChild(createTextNode(order.customer.phone));
+      customerDiv.appendChild(createElement('br'));
+    }
+    cardBody.appendChild(customerDiv);
+
+    // Shipping address
+    const shippingDiv = createElement('div');
+    shippingDiv.appendChild(createElement('strong', { textContent: 'Shipping Address:' }));
+    shippingDiv.appendChild(createElement('br'));
+    shippingDiv.appendChild(createTextNode(order.customer.address));
+    shippingDiv.appendChild(createElement('br'));
+    shippingDiv.appendChild(createTextNode(`${order.customer.city}, ${order.customer.state} ${order.customer.zip}`));
+    cardBody.appendChild(shippingDiv);
+
+    // Order items
+    const itemsDiv = createElement('div');
+    itemsDiv.appendChild(createElement('strong', { textContent: 'Order Items:' }));
+    const itemsList = createElement('ul', { className: 'admin-order-list' });
+    order.items.forEach((item) => {
+      const li = createElement('li', { textContent: `${item.name} x ${item.quantity} - $${Number(item.lineTotal).toFixed(2)}` });
+      itemsList.appendChild(li);
+    });
+    itemsDiv.appendChild(itemsList);
+    cardBody.appendChild(itemsDiv);
+
+    // Totals grid
+    const totalsGrid = createElement('div', { className: 'admin-grid' });
+
+    const totalsDiv = createElement('div');
+    totalsDiv.appendChild(createElement('strong', { textContent: 'Subtotal:' }));
+    totalsDiv.appendChild(createTextNode(` $${Number(order.totals.subtotal).toFixed(2)}`));
+    totalsDiv.appendChild(createElement('br'));
+    totalsDiv.appendChild(createElement('strong', { textContent: 'Shipping:' }));
+    totalsDiv.appendChild(createTextNode(` $${Number(order.totals.shipping).toFixed(2)}`));
+    totalsDiv.appendChild(createElement('br'));
+    if (order.totals.discount) {
+      totalsDiv.appendChild(createElement('strong', { textContent: 'Discount:' }));
+      totalsDiv.appendChild(createTextNode(` -$${Number(order.totals.discount).toFixed(2)}`));
+      totalsDiv.appendChild(createElement('br'));
+    }
+    totalsDiv.appendChild(createElement('strong', { textContent: 'Total:' }));
+    totalsDiv.appendChild(createTextNode(` $${Number(order.totals.total).toFixed(2)}`));
+    totalsGrid.appendChild(totalsDiv);
+
+    const promoDiv = createElement('div');
+    if (order.promoCode) {
+      promoDiv.appendChild(createElement('strong', { textContent: 'Promo Code:' }));
+      promoDiv.appendChild(createTextNode(` ${order.promoCode}`));
+      promoDiv.appendChild(createElement('br'));
+    }
+    if (order.venmoNote) {
+      promoDiv.appendChild(createElement('strong', { textContent: 'Venmo Note:' }));
+      promoDiv.appendChild(createTextNode(` ${order.venmoNote}`));
+    }
+    totalsGrid.appendChild(promoDiv);
+    cardBody.appendChild(totalsGrid);
+
+    detailsForm.appendChild(cardBody);
+    details.appendChild(detailsForm);
 
     // Add event listeners
     summary.addEventListener('click', () => {
       listItem.classList.toggle('expanded');
     });
 
-    const select = details.querySelector(`[data-order-status="${order.orderNumber}"]`);
-    const updateBtn = details.querySelector(`[data-update-status="${order.orderNumber}"]`);
+    const orderSelect = details.querySelector(`[data-order-status="${order.orderNumber}"]`);
+    const orderUpdateBtn = details.querySelector(`[data-update-status="${order.orderNumber}"]`);
 
     updateBtn.addEventListener('click', (event) => {
       event.preventDefault();
@@ -600,7 +781,7 @@ async function handleCreateProduct(event) {
     category: categories[0] || '',
     coa: formData.get('coa').trim(),
     stock: parseInt(formData.get('stock'), 10) || 0,
-    isActive: formData.get('isActive') === 'on'
+    status: formData.get('status') || 'active'
   };
 
   if (!payload.sku || !payload.name || Number.isNaN(payload.price)) {
@@ -632,7 +813,7 @@ async function handleUpdateProduct(event, sku) {
     category: categories[0] || '',
     coa: formData.get('coa').trim(),
     stock: parseInt(formData.get('stock'), 10) || 0,
-    isActive: formData.get('isActive') === 'on'
+    status: formData.get('status') || 'active'
   };
 
   if (!payload.name || Number.isNaN(payload.price)) {
@@ -747,13 +928,186 @@ async function handleUpdateOrderStatus(orderNumber, status) {
     if (orderIndex !== -1) {
       lastLoadedData.orders[orderIndex].status = status;
     }
-
-    console.log('[admin] Order status updated successfully:', result);
   } catch (error) {
     console.error('[admin] Failed to update order status', error);
     const errorMsg = error.message || 'Failed to update order status.';
     showStatus(`✗ ${errorMsg}`, 'error');
     throw error; // Re-throw to handle in button click handler
+  }
+}
+
+/**
+ * Generate and print a packing slip for an order
+ */
+function printPackingSlip(order) {
+  const orderDate = new Date(order.createdAt).toLocaleDateString('en-US', {
+    year: 'numeric',
+    month: 'long',
+    day: 'numeric'
+  });
+
+  const itemsHtml = order.items.map(item => `
+    <tr>
+      <td style="padding: 8px 0; border-bottom: 1px solid #eee;">${item.name}</td>
+      <td style="padding: 8px 0; border-bottom: 1px solid #eee; text-align: center;">x${item.quantity}</td>
+      <td style="padding: 8px 0; border-bottom: 1px solid #eee; text-align: right;">$${Number(item.lineTotal).toFixed(2)}</td>
+    </tr>
+  `).join('');
+
+  const packingSlipHtml = `
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Packing Slip - ${order.orderNumber}</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      font-size: 14px;
+      line-height: 1.5;
+      color: #333;
+      padding: 40px;
+      max-width: 600px;
+      margin: 0 auto;
+    }
+    .header {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      padding-bottom: 20px;
+      border-bottom: 2px solid #333;
+      margin-bottom: 24px;
+    }
+    .brand { font-size: 24px; font-weight: 700; letter-spacing: 2px; }
+    .brand-url { font-size: 12px; color: #666; margin-top: 4px; }
+    .slip-title { font-size: 18px; color: #666; text-align: right; }
+    .order-info {
+      background: #f8f8f8;
+      padding: 16px;
+      margin-bottom: 24px;
+    }
+    .order-number { font-size: 16px; font-weight: 600; }
+    .order-date { color: #666; margin-top: 4px; }
+    .section { margin-bottom: 24px; }
+    .section-title {
+      font-size: 11px;
+      font-weight: 600;
+      letter-spacing: 1px;
+      text-transform: uppercase;
+      color: #666;
+      margin-bottom: 8px;
+    }
+    .address { font-size: 15px; }
+    .items-table { width: 100%; border-collapse: collapse; }
+    .items-table th {
+      text-align: left;
+      padding: 8px 0;
+      border-bottom: 2px solid #333;
+      font-size: 11px;
+      font-weight: 600;
+      letter-spacing: 1px;
+      text-transform: uppercase;
+      color: #666;
+    }
+    .items-table th:last-child { text-align: right; }
+    .total-row {
+      margin-top: 16px;
+      padding-top: 16px;
+      border-top: 2px solid #333;
+      font-size: 16px;
+      font-weight: 600;
+      display: flex;
+      justify-content: space-between;
+    }
+    .thank-you {
+      text-align: center;
+      padding: 24px 0;
+      margin-top: 24px;
+      border-top: 1px solid #eee;
+      font-size: 15px;
+      color: #666;
+    }
+    .disclaimer {
+      margin-top: 24px;
+      padding: 16px;
+      background: #f8f8f8;
+      font-size: 10px;
+      color: #888;
+      line-height: 1.6;
+    }
+    @media print {
+      body { padding: 20px; }
+      .no-print { display: none; }
+    }
+  </style>
+</head>
+<body>
+  <div class="header">
+    <div>
+      <div class="brand">EVOQ WELLNESS</div>
+      <div class="brand-url">evoqwell.shop</div>
+    </div>
+    <div class="slip-title">Packing Slip</div>
+  </div>
+
+  <div class="order-info">
+    <div class="order-number">Order ${order.orderNumber}</div>
+    <div class="order-date">${orderDate}</div>
+  </div>
+
+  <div class="section">
+    <div class="section-title">Ship To</div>
+    <div class="address">
+      ${order.customer.name}<br>
+      ${order.customer.address}<br>
+      ${order.customer.city}, ${order.customer.state} ${order.customer.zip}
+    </div>
+  </div>
+
+  <div class="section">
+    <div class="section-title">Items</div>
+    <table class="items-table">
+      <thead>
+        <tr>
+          <th>Product</th>
+          <th style="text-align: center;">Qty</th>
+          <th style="text-align: right;">Price</th>
+        </tr>
+      </thead>
+      <tbody>
+        ${itemsHtml}
+      </tbody>
+    </table>
+    <div class="total-row">
+      <span>Order Total</span>
+      <span>$${Number(order.totals.total).toFixed(2)}</span>
+    </div>
+  </div>
+
+  <div class="thank-you">
+    Thank you for your order!
+  </div>
+
+  <div class="disclaimer">
+    EVOQ products are supplied exclusively for legitimate research purposes and are not intended for human consumption, veterinary use, or medical applications. By purchasing, you acknowledge these conditions and assume responsibility for proper handling and regulatory compliance.
+  </div>
+
+  <script>
+    window.onload = function() {
+      window.print();
+      window.onafterprint = function() { window.close(); };
+    };
+  </script>
+</body>
+</html>
+  `;
+
+  const printWindow = window.open('', '_blank', 'width=650,height=800');
+  if (printWindow) {
+    printWindow.document.write(packingSlipHtml);
+    printWindow.document.close();
+  } else {
+    showStatus('Unable to open print window. Please allow popups.', 'error');
   }
 }
 
@@ -850,6 +1204,46 @@ function escapeHtml(value) {
     .replace(/>/g, '&gt;')
     .replace(/"/g, '&quot;')
     .replace(/'/g, '&#39;');
+}
+
+// Safe DOM creation helpers to prevent XSS
+function createElement(tag, attributes = {}, children = []) {
+  const element = document.createElement(tag);
+
+  for (const [key, value] of Object.entries(attributes)) {
+    if (key === 'className') {
+      element.className = value;
+    } else if (key === 'textContent') {
+      element.textContent = value;
+    } else if (key === 'htmlContent') {
+      // Only use for trusted static HTML (no user data)
+      element.innerHTML = value;
+    } else if (key.startsWith('data-')) {
+      element.dataset[key.slice(5).replace(/-([a-z])/g, (_, c) => c.toUpperCase())] = value;
+    } else if (key === 'checked' || key === 'disabled' || key === 'hidden' || key === 'required') {
+      if (value) element[key] = true;
+    } else {
+      element.setAttribute(key, value);
+    }
+  }
+
+  for (const child of children) {
+    if (typeof child === 'string') {
+      element.appendChild(document.createTextNode(child));
+    } else if (child instanceof Node) {
+      element.appendChild(child);
+    }
+  }
+
+  return element;
+}
+
+function createTextNode(text) {
+  return document.createTextNode(text || '');
+}
+
+function setTextContent(element, text) {
+  element.textContent = text || '';
 }
 
 // Analytics functions

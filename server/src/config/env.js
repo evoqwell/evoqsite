@@ -19,7 +19,10 @@ const config = {
   venmoUsername: process.env.VENMO_USERNAME || 'EVOQWELL',
   shippingFlatRateCents: Number(process.env.SHIPPING_FLAT_RATE_CENTS || 1000),
   admin: {
-    accessToken: process.env.ADMIN_ACCESS_TOKEN || ''
+    accessToken: process.env.ADMIN_ACCESS_TOKEN || '',
+    jwtSecret: process.env.JWT_SECRET || process.env.ADMIN_ACCESS_TOKEN || 'dev-jwt-secret-change-in-production',
+    jwtExpiresIn: '30m', // 30 minutes
+    sessionTimeout: 30 * 60 * 1000 // 30 minutes in milliseconds
   }
 };
 

@@ -488,11 +488,6 @@ function createCheckoutFormValidator(form) {
       firstInvalidField.scrollIntoView({ behavior: 'smooth', block: 'center' });
     }
 
-    // Log validation summary for debugging
-    if (revealErrors && !allValid) {
-      console.log('Form validation failed:', fieldStatuses.filter(f => !f.valid));
-    }
-
     return allValid;
   };
 
@@ -514,7 +509,6 @@ function createCheckoutFormValidator(form) {
         const isValid = validate({ revealErrors: true });
         if (!isValid) {
           e.preventDefault();
-          console.log('Form submission blocked: validation failed');
         }
       }
     });

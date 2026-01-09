@@ -39,18 +39,27 @@ function createProductCard(product) {
   const stockCount = Number(product.stock);
   const hasStockValue = !Number.isNaN(stockCount);
   const isOutOfStock = hasStockValue ? stockCount <= 0 : false;
-  const stockLabel = isOutOfStock ? 'Out of Stock' : 'In Stock';
+  const isComingSoon = product.status === 'coming_soon';
 
   card.className = 'product-card fade-in';
   card.dataset.productId = product.id;
   if (isOutOfStock) {
     card.classList.add('out-of-stock');
   }
+  if (isComingSoon) {
+    card.classList.add('coming-soon');
+  }
 
+  // Image wrapper with optional status ribbon
   const imageWrapper = document.createElement('div');
   imageWrapper.className = 'product-image-wrapper';
 
-  if (isOutOfStock) {
+  if (isComingSoon) {
+    const ribbon = document.createElement('span');
+    ribbon.className = 'product-ribbon coming-soon';
+    ribbon.textContent = 'Coming Soon';
+    imageWrapper.appendChild(ribbon);
+  } else if (isOutOfStock) {
     const ribbon = document.createElement('span');
     ribbon.className = 'product-ribbon';
     ribbon.textContent = 'Out of Stock';
@@ -64,49 +73,68 @@ function createProductCard(product) {
   image.alt = product.name;
   imageWrapper.appendChild(image);
 
+  // Product info section
   const info = document.createElement('div');
   info.className = 'product-info';
 
-  const title = document.createElement('h3');
-  title.className = 'product-name';
-  title.textContent = product.name;
-  info.appendChild(title);
-
+  // Category chips (show all)
   const categories = createProductCategories(product);
   if (categories) {
     info.appendChild(categories);
   }
 
+  // Product name with styled unit
+  const title = document.createElement('h3');
+  title.className = 'product-name';
+
+  // Parse name to style unit (mg, ml, etc.) differently
+  const unitMatch = product.name.match(/^(.+?\s*)(\d+)\s*(mg|ml|mcg|iu)$/i);
+  if (unitMatch) {
+    const [, prefix, amount, unit] = unitMatch;
+    title.appendChild(document.createTextNode(prefix + amount + ' '));
+    const unitSpan = document.createElement('span');
+    unitSpan.className = 'product-unit';
+    unitSpan.textContent = unit;
+    title.appendChild(unitSpan);
+  } else {
+    title.textContent = product.name;
+  }
+  info.appendChild(title);
+
+  // Footer with price and actions
   const footer = document.createElement('div');
   footer.className = 'product-footer';
 
+  // Price
   const priceEl = document.createElement('span');
   priceEl.className = 'product-price';
   priceEl.textContent = `$${Number(product.price).toFixed(2)}`;
   footer.appendChild(priceEl);
 
-  const stockStatus = document.createElement('span');
-  stockStatus.className = `product-stock-status ${isOutOfStock ? 'sold-out' : 'in-stock'}`;
-  stockStatus.textContent = stockLabel;
-  footer.appendChild(stockStatus);
-
+  // Actions
   const actions = document.createElement('div');
   actions.className = 'product-actions';
 
+  // View Details link
   const viewDetails = document.createElement('button');
-  viewDetails.className = 'btn-secondary btn-view-details';
+  viewDetails.className = 'btn-view-details';
   viewDetails.type = 'button';
-  viewDetails.textContent = 'View Details';
+  viewDetails.textContent = 'Details';
   viewDetails.addEventListener('click', () => openProductDetailsModal(product));
   actions.appendChild(viewDetails);
 
+  // Add to Cart button
   const addToCartBtn = document.createElement('button');
   addToCartBtn.className = 'btn-add-cart';
   addToCartBtn.type = 'button';
-  if (isOutOfStock) {
+  if (isComingSoon) {
     addToCartBtn.disabled = true;
     addToCartBtn.setAttribute('aria-disabled', 'true');
-    addToCartBtn.textContent = 'Out of Stock';
+    addToCartBtn.textContent = 'Coming Soon';
+  } else if (isOutOfStock) {
+    addToCartBtn.disabled = true;
+    addToCartBtn.setAttribute('aria-disabled', 'true');
+    addToCartBtn.textContent = 'Sold Out';
   } else {
     addToCartBtn.textContent = 'Add to Cart';
     addToCartBtn.addEventListener('click', () => openAddToCartModal(product));
@@ -114,7 +142,6 @@ function createProductCard(product) {
   actions.appendChild(addToCartBtn);
 
   footer.appendChild(actions);
-
   info.appendChild(footer);
   card.appendChild(imageWrapper);
   card.appendChild(info);
@@ -147,18 +174,24 @@ function createProductCategories(product) {
 }
 
 function renderLoading(container) {
-  // Create skeleton loaders for a better loading experience
-  const skeletonCount = 8; // Show 8 skeleton cards while loading
+  const skeletonCount = 6;
   let skeletonHTML = '<div class="skeleton-container">';
 
   for (let i = 0; i < skeletonCount; i++) {
     skeletonHTML += `
       <div class="skeleton-card">
         <div class="skeleton skeleton-image"></div>
-        <div class="skeleton skeleton-title"></div>
-        <div class="skeleton skeleton-text"></div>
-        <div class="skeleton skeleton-text short"></div>
-        <div class="skeleton skeleton-button"></div>
+        <div class="skeleton-info">
+          <div class="skeleton-chips">
+            <div class="skeleton skeleton-chip"></div>
+            <div class="skeleton skeleton-chip"></div>
+          </div>
+          <div class="skeleton skeleton-title"></div>
+          <div class="skeleton-footer">
+            <div class="skeleton skeleton-price"></div>
+            <div class="skeleton skeleton-button"></div>
+          </div>
+        </div>
       </div>
     `;
   }

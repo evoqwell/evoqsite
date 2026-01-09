@@ -334,6 +334,21 @@
             background: #b23a48;
             color: #fff5f5;
         }
+        .btn-secondary {
+            background: transparent;
+            color: #6b5f52;
+            border: 1px solid #8a7d6e;
+            padding: 0.5rem 1rem;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: 500;
+            font-size: 0.9rem;
+            transition: all 0.2s ease;
+        }
+        .btn-secondary:hover {
+            background: #6b5f52;
+            color: #f5f1e9;
+        }
         .admin-inline {
             flex-direction: row;
             align-items: center;
@@ -516,9 +531,13 @@
                             COA File Path (e.g., /COAs/ProductName COA.pdf)
                             <input type="text" name="coa" placeholder="/COAs/filename.pdf">
                         </label>
-                        <label class="admin-inline">
-                            <input type="checkbox" name="isActive" checked>
-                            Active
+                        <label>
+                            Status
+                            <select name="status">
+                                <option value="active" selected>Active</option>
+                                <option value="coming_soon">Coming Soon</option>
+                                <option value="inactive">Inactive</option>
+                            </select>
                         </label>
                     </div>
                     <button type="submit" class="btn-primary">Create Product</button>

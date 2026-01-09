@@ -22,12 +22,29 @@ dist-ssr
 *.sw?
 .claude
 
-# Environment files
+# Environment files - NEVER commit secrets
 .env
+.env.*
 .env.local
 .env.production
 .env.development
 .env.test
+.env.staging
 *.env
+**/.env
+**/.env.*
 server/.env
 server/.env.*
+server/**/.env
+server/**/.env.*
+
+# Secrets and credentials
+*.pem
+*.key
+*.crt
+*.p12
+*.pfx
+secrets.json
+credentials.json
+config.local.js
+config.local.json

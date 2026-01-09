@@ -4,8 +4,6 @@
 
 import './lib/animations.js'; // Import enhanced animations
 
-console.log('EVOQ script.js loaded');
-
 // ============================================
 // CART MANAGEMENT
 // ============================================
@@ -457,8 +455,6 @@ function initMobileMenu() {
     return;
   }
 
-  console.log('Mobile menu initialized');
-
   // Toggle menu function
   function toggleMenu(e) {
     e.preventDefault();
@@ -477,23 +473,19 @@ function initMobileMenu() {
     menuToggle.classList.add('active');
     navLinks.classList.add('active');
     document.body.classList.add('menu-open');
-    console.log('Menu opened');
   }
 
   function closeMenu() {
     menuToggle.classList.remove('active');
     navLinks.classList.remove('active');
     document.body.classList.remove('menu-open');
-    console.log('Menu closed');
   }
 
   // Hamburger toggle - works on both click and touch
   menuToggle.addEventListener('click', (e) => {
-    console.log('Hamburger click fired');
     toggleMenu(e);
   });
   menuToggle.addEventListener('touchend', (e) => {
-    console.log('Hamburger touchend fired');
     e.preventDefault();
     toggleMenu(e);
   }, { passive: false });
@@ -501,8 +493,6 @@ function initMobileMenu() {
   // Navigation links - close menu on click and allow navigation
   navLinks.querySelectorAll('a').forEach(link => {
     link.addEventListener('click', (e) => {
-      // Allow the link to navigate
-      console.log('Link clicked:', link.href);
       closeMenu();
     });
   });
@@ -533,8 +523,6 @@ function initMobileMenu() {
 // ============================================
 
 export function initializeApp() {
-  console.log('DOMContentLoaded fired');
-
   // Initialize mobile menu
   initMobileMenu();
 

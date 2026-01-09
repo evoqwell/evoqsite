@@ -8,14 +8,18 @@ import { calculateOrderTotals } from '../utils/orderTotals.js';
 import { config } from '../config/env.js';
 import { centsToDollars } from '../utils/money.js';
 import { orderLimiter, logSecurityEvent } from '../middleware/security.js';
+import { encryptCustomerData } from '../utils/encryption.js';
+import { anonymizeIpForLog } from '../utils/ipAnonymizer.js';
+import { ipReputationMiddleware, emailRateLimitMiddleware } from '../utils/ipReputation.js';
 
 const router = Router();
 
-router.post('/', orderLimiter, async (req, res, next) => {
+// Apply security middleware: IP rate limiting, reputation check, email rate limiting
+router.post('/', orderLimiter, ipReputationMiddleware, emailRateLimitMiddleware, async (req, res, next) => {
   try {
-    // Log order attempt for security monitoring
+    // Log order attempt for security monitoring (GDPR: anonymize IP)
     logSecurityEvent('ORDER_ATTEMPT', {
-      ip: req.ip,
+      ip: anonymizeIpForLog(req.ip),
       items: req.body.items?.length || 0,
       email: req.body.customer?.email
     }, req);
@@ -106,6 +110,16 @@ router.post('/', orderLimiter, async (req, res, next) => {
       lineTotalCents: item.product.priceCents * item.quantity
     }));
 
+    // Encrypt customer PII before storing
+    const encryptedCustomer = encryptCustomerData({
+      name: payload.customer.name,
+      email: payload.customer.email,
+      address: payload.customer.address,
+      city: payload.customer.city,
+      state: payload.customer.state,
+      zip: payload.customer.zip
+    });
+
     const order = await Order.create({
       orderNumber,
       promoCode: promos.length > 0 ? promos[0].code : null,
@@ -118,14 +132,7 @@ router.post('/', orderLimiter, async (req, res, next) => {
         shippingCents: totals.shippingCents,
         totalCents: totals.totalCents
       },
-      customer: {
-        name: payload.customer.name,
-        email: payload.customer.email,
-        address: payload.customer.address,
-        city: payload.customer.city,
-        state: payload.customer.state,
-        zip: payload.customer.zip
-      }
+      customer: encryptedCustomer
     });
 
     console.log(
