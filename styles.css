@@ -2072,6 +2072,27 @@ footer .container {
     height: auto;
   }
 
+  /* About/Contact hero - compact, no fixed heights */
+  .hero-about,
+  .hero-contact {
+    height: auto !important;
+    min-height: unset !important;
+    max-height: unset !important;
+    padding: 3rem 1rem 2rem !important;
+  }
+
+  .hero-about .hero-content,
+  .hero-contact .hero-content {
+    height: auto !important;
+    padding: 0 !important;
+  }
+
+  .hero-about .hero-values,
+  .hero-contact .hero-values {
+    margin-top: 0.75rem !important;
+    margin-bottom: 0 !important;
+  }
+
   .hero-fullscreen {
     height: calc(100svh - 60px);
     max-height: calc(100svh - 60px);
