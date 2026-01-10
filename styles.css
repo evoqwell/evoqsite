@@ -1160,6 +1160,7 @@ body:has(.hero-contact) {
 .product-categories {
   display: flex;
   flex-wrap: wrap;
+  align-items: center;
   gap: 0.5rem;
   margin-bottom: var(--space-xs);
 }
@@ -1175,11 +1176,14 @@ body:has(.hero-contact) {
   opacity: 0.85;
 }
 
-.product-category-chip:not(:last-child)::after {
-  content: '—';
-  margin-left: 0.5rem;
-  color: var(--sand);
-  font-weight: 300;
+/* Category separator - added via JS for line-break awareness */
+.category-separator {
+  display: inline-block;
+  width: 0.8em;
+  height: 1px;
+  background-color: var(--sand);
+  margin: 0 0.4rem;
+  vertical-align: middle;
 }
 
 /* Product Header — contains name and price (for mobile inline layout) */
@@ -5138,10 +5142,14 @@ button:focus {
     letter-spacing: 0.08em !important;
   }
 
-  /* Add space before and after dash separator */
-  .product-card .product-category-chip:not(:last-child)::after {
-    margin-left: 0.35rem !important;
-    margin-right: 0.35rem !important;
+  /* Category separator styling */
+  .product-card .category-separator {
+    display: inline-block !important;
+    width: 0.6em !important;
+    height: 1px !important;
+    background-color: var(--sand) !important;
+    margin: 0 0.3rem !important;
+    vertical-align: middle !important;
   }
 
   /* Header: Stacked name and price */

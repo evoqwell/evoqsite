@@ -1,8 +1,42 @@
 import { fetchProducts } from './lib/api.js';
 import { openAddToCartModal, openProductDetailsModal } from './lib/productModals.js';
 
+// Hide dash separators that appear at line breaks
+function adjustCategorySeparators() {
+  document.querySelectorAll('.product-categories').forEach((container) => {
+    const separators = container.querySelectorAll('.category-separator');
+    const chips = container.querySelectorAll('.product-category-chip');
+
+    // Show all separators first
+    separators.forEach((sep) => (sep.style.visibility = 'visible'));
+
+    // Check each separator's position relative to adjacent chips
+    separators.forEach((sep, index) => {
+      const prevChip = chips[index];
+      const nextChip = chips[index + 1];
+
+      if (prevChip && nextChip) {
+        const prevRect = prevChip.getBoundingClientRect();
+        const nextRect = nextChip.getBoundingClientRect();
+
+        // If next chip is on a different line, hide the dash
+        if (Math.abs(prevRect.top - nextRect.top) > 5) {
+          sep.style.visibility = 'hidden';
+        }
+      }
+    });
+  });
+}
+
 document.addEventListener('DOMContentLoaded', () => {
   loadProducts();
+
+  // Re-adjust separators on window resize
+  let resizeTimeout;
+  window.addEventListener('resize', () => {
+    clearTimeout(resizeTimeout);
+    resizeTimeout = setTimeout(adjustCategorySeparators, 100);
+  });
 });
 
 async function loadProducts() {
@@ -28,6 +62,9 @@ async function loadProducts() {
       const card = createProductCard(product);
       productsGrid.appendChild(card);
     });
+
+    // Adjust category separators after cards are in DOM
+    requestAnimationFrame(adjustCategorySeparators);
   } catch (error) {
     console.error('Failed to load products', error);
     renderError(productsGrid);
@@ -175,11 +212,18 @@ function createProductCategories(product) {
   const container = document.createElement('div');
   container.className = 'product-categories';
 
-  categories.forEach((category) => {
+  categories.forEach((category, index) => {
     const chip = document.createElement('span');
     chip.className = 'product-category-chip';
     chip.textContent = category;
     container.appendChild(chip);
+
+    // Add separator (except after last item)
+    if (index < categories.length - 1) {
+      const sep = document.createElement('span');
+      sep.className = 'category-separator';
+      container.appendChild(sep);
+    }
   });
 
   return container;
