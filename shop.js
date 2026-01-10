@@ -7,8 +7,8 @@ function adjustCategorySeparators() {
     const separators = container.querySelectorAll('.category-separator');
     const chips = container.querySelectorAll('.product-category-chip');
 
-    // Show all separators first
-    separators.forEach((sep) => (sep.style.visibility = 'visible'));
+    // Show all separators first (reset display)
+    separators.forEach((sep) => (sep.style.display = ''));
 
     // Check each separator's position relative to adjacent chips
     separators.forEach((sep, index) => {
@@ -19,9 +19,9 @@ function adjustCategorySeparators() {
         const prevRect = prevChip.getBoundingClientRect();
         const nextRect = nextChip.getBoundingClientRect();
 
-        // If next chip is on a different line, hide the dash
+        // If next chip is on a different line, hide the dash completely
         if (Math.abs(prevRect.top - nextRect.top) > 5) {
-          sep.style.visibility = 'hidden';
+          sep.style.display = 'none';
         }
       }
     });
