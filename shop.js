@@ -7,10 +7,13 @@ function adjustCategorySeparators() {
     const separators = container.querySelectorAll('.category-separator');
     const chips = container.querySelectorAll('.product-category-chip');
 
-    // Show all separators first (reset display)
-    separators.forEach((sep) => (sep.style.display = ''));
+    // Hide all separators first to measure true chip positions
+    separators.forEach((sep) => (sep.style.display = 'none'));
 
-    // Check each separator's position relative to adjacent chips
+    // Force layout recalculation
+    container.offsetHeight;
+
+    // Show separators only between chips on the same line
     separators.forEach((sep, index) => {
       const prevChip = chips[index];
       const nextChip = chips[index + 1];
@@ -19,9 +22,9 @@ function adjustCategorySeparators() {
         const prevRect = prevChip.getBoundingClientRect();
         const nextRect = nextChip.getBoundingClientRect();
 
-        // If next chip is on a different line, hide the dash completely
-        if (Math.abs(prevRect.top - nextRect.top) > 5) {
-          sep.style.display = 'none';
+        // Only show separator if chips are on the same line
+        if (Math.abs(prevRect.top - nextRect.top) <= 5) {
+          sep.style.display = '';
         }
       }
     });
