@@ -54,7 +54,7 @@ app.use(
       }
     },
     credentials: true,
-    allowedHeaders: ['Content-Type', 'X-Admin-Token', 'Authorization'],
+    allowedHeaders: ['Content-Type', 'X-Admin-Token', 'Authorization', 'X-CSRF-Token'],
     methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS']
   })
 );
