@@ -8,6 +8,13 @@
   # Build command runs Vite build which copies everything to dist
   command = "npm run build"
 
+# Redirect Netlify subdomain to production domain
+[[redirects]]
+  from = "https://evoqwell.netlify.app/*"
+  to = "https://evoqwell.shop/:splat"
+  status = 301
+  force = true
+
 # Redirect rules - only redirect when file not found
 # This allows HTML pages and static assets to be served normally
 [[redirects]]
