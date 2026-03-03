@@ -68,4 +68,17 @@ router.patch('/:orderNumber/status', async (req, res, next) => {
   }
 });
 
+router.delete('/:orderNumber', async (req, res, next) => {
+  try {
+    const { orderNumber } = req.params;
+    const result = await Order.findOneAndDelete({ orderNumber });
+    if (!result) {
+      return res.status(404).json({ error: 'Order not found.' });
+    }
+    res.status(204).end();
+  } catch (error) {
+    next(error);
+  }
+});
+
 export default router;

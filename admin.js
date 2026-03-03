@@ -8,6 +8,7 @@
   updateAdminPromo,
   deleteAdminPromo,
   fetchAdminOrders,
+  deleteAdminOrder,
   updateAdminOrderStatus,
   fetchAdminAnalytics,
   adminLogin,
@@ -555,6 +556,20 @@ function renderOrders(orders) {
       printPackingSlip(order);
     });
     statusDiv.appendChild(printBtn);
+
+    // Delete Order button
+    const deleteBtn = createElement('button', {
+      type: 'button',
+      className: 'btn-danger',
+      style: 'margin-top: 8px; margin-left: 8px;',
+      textContent: 'Delete Order'
+    });
+    deleteBtn.addEventListener('click', (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      handleDeleteOrder(order.orderNumber);
+    });
+    statusDiv.appendChild(deleteBtn);
     statusGrid.appendChild(statusDiv);
 
     // Order date
@@ -909,6 +924,20 @@ async function handleDeletePromo(code) {
   } catch (error) {
     console.error('[admin] Failed to delete promo', error);
     showStatus(error.message || 'Failed to delete promo.', 'error');
+  }
+}
+
+async function handleDeleteOrder(orderNumber) {
+  if (!confirm(`Delete order ${orderNumber}? This cannot be undone.`)) {
+    return;
+  }
+  try {
+    await deleteAdminOrder(adminToken, orderNumber);
+    showStatus(`Order ${orderNumber} deleted.`);
+    await loadDashboard();
+  } catch (error) {
+    console.error('[admin] Failed to delete order', error);
+    showStatus(error.message || 'Failed to delete order.', 'error');
   }
 }
 

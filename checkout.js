@@ -658,6 +658,99 @@ async function handleCheckoutSubmit(event) {
   }
 }
 
+// --- Venmo Smart Deep Link Helpers ---
+
+function detectVenmoPlatform() {
+  const ua = navigator.userAgent || '';
+  const isIOS = /iPhone|iPad|iPod/i.test(ua);
+  const isAndroid = /Android/i.test(ua);
+  const isMobile = isIOS || isAndroid;
+  const isInAppBrowser = /FBAN|FBAV|Instagram|Twitter|Line|Snapchat/i.test(ua);
+  return { isIOS, isAndroid, isMobile, isInAppBrowser };
+}
+
+function handleVenmoPayment(venmoPayment, totalDisplay) {
+  const platform = detectVenmoPlatform();
+
+  if (platform.isInAppBrowser) {
+    showVenmoGuidance(venmoPayment, totalDisplay, 'inapp');
+    return;
+  }
+
+  if (platform.isMobile) {
+    tryDeepLinkWithFallback(venmoPayment, platform);
+    return;
+  }
+
+  // Desktop: open web URL + show guidance
+  window.open(venmoPayment.webUrl, '_blank');
+  showVenmoGuidance(venmoPayment, totalDisplay, 'desktop');
+}
+
+function tryDeepLinkWithFallback(venmoPayment, platform) {
+  const startTime = Date.now();
+
+  const onVisibilityChange = () => {
+    if (document.hidden) {
+      clearTimeout(fallbackTimer);
+      document.removeEventListener('visibilitychange', onVisibilityChange);
+    }
+  };
+  document.addEventListener('visibilitychange', onVisibilityChange);
+
+  // Try deep link
+  if (platform.isAndroid) {
+    const iframe = document.createElement('iframe');
+    iframe.style.display = 'none';
+    iframe.src = venmoPayment.deepLink;
+    document.body.appendChild(iframe);
+    setTimeout(() => iframe.remove(), 2000);
+  } else {
+    window.location.href = venmoPayment.deepLink;
+  }
+
+  // Fallback after 1500ms
+  const fallbackTimer = setTimeout(() => {
+    document.removeEventListener('visibilitychange', onVisibilityChange);
+    if (!document.hidden && Date.now() - startTime >= 1400) {
+      window.open(venmoPayment.webUrl, '_blank');
+    }
+  }, 1500);
+}
+
+function showVenmoGuidance(venmoPayment, totalDisplay, mode) {
+  const guidanceEl = document.getElementById('venmo-guidance');
+  if (!guidanceEl) return;
+
+  const safeNote = escapeHtml(venmoPayment.note || '');
+  const safeUsername = escapeHtml(venmoPayment.username || '');
+  const safeAmount = escapeHtml(venmoPayment.amount || '');
+  const safeWebUrl = escapeHtml(venmoPayment.webUrl || '');
+
+  if (mode === 'desktop') {
+    guidanceEl.innerHTML = `
+      <div style="background: #FFF7ED; padding: 16px; border-radius: 10px; border-left: 4px solid #8A7D6E; margin-top: 12px; text-align: left;">
+        <p style="margin: 0 0 8px 0; font-weight: 600; color: #333; font-size: 0.95rem;">Paying from a computer?</p>
+        <p style="margin: 0 0 10px 0; color: #444; font-size: 0.88rem; line-height: 1.5;">Open the Venmo app on your phone and send <strong>$${safeAmount}</strong> to <strong>@${safeUsername}</strong> with this note:</p>
+        <div style="display: flex; align-items: center; gap: 8px; background: #fff; padding: 10px 14px; border-radius: 8px; border: 1px solid #D9CDBF;">
+          <code style="flex: 1; font-size: 0.9rem; color: #6B5F52; word-break: break-all;">${safeNote}</code>
+          <button onclick="navigator.clipboard.writeText('${safeNote}').then(function(){this.textContent='Copied!'}.bind(this))" style="background: #8A7D6E; color: #F5F1E9; border: none; padding: 6px 14px; border-radius: 6px; font-size: 0.8rem; font-weight: 600; cursor: pointer; white-space: nowrap;">Copy</button>
+        </div>
+      </div>`;
+  } else if (mode === 'inapp') {
+    guidanceEl.innerHTML = `
+      <div style="background: #FFF7ED; padding: 16px; border-radius: 10px; border-left: 4px solid #DC6E3F; margin-top: 12px; text-align: left;">
+        <p style="margin: 0 0 8px 0; font-weight: 600; color: #333; font-size: 0.95rem;">In-app browser detected</p>
+        <p style="margin: 0 0 10px 0; color: #444; font-size: 0.88rem; line-height: 1.5;">This browser can't open Venmo directly. Copy the payment link below and open it in Safari or Chrome:</p>
+        <div style="display: flex; align-items: center; gap: 8px; background: #fff; padding: 10px 14px; border-radius: 8px; border: 1px solid #D9CDBF;">
+          <code style="flex: 1; font-size: 0.8rem; color: #6B5F52; word-break: break-all; overflow: hidden; text-overflow: ellipsis;">${safeWebUrl}</code>
+          <button onclick="navigator.clipboard.writeText('${safeWebUrl}').then(function(){this.textContent='Copied!'}.bind(this))" style="background: #8A7D6E; color: #F5F1E9; border: none; padding: 6px 14px; border-radius: 6px; font-size: 0.8rem; font-weight: 600; cursor: pointer; white-space: nowrap;">Copy Link</button>
+        </div>
+        <p style="margin: 10px 0 0 0; color: #444; font-size: 0.85rem;">Or send <strong>$${safeAmount}</strong> to <strong>@${safeUsername}</strong> in the Venmo app with note: <strong>${safeNote}</strong></p>
+      </div>`;
+  }
+}
+
 function showOrderConfirmation(order, { emailError } = {}) {
   const modalContent = document.getElementById('orderConfirmationContent');
   if (!modalContent || !order) return;
@@ -697,6 +790,7 @@ function showOrderConfirmation(order, { emailError } = {}) {
   const shipping = Number(order.totals?.shipping || 0).toFixed(2);
   const total = Number(order.totals?.total || 0).toFixed(2);
   const safeVenmoUrl = escapeHtml(order.venmoUrl || '#');
+  const venmoPayment = order.venmoPayment || null;
 
   modalContent.innerHTML = `
     <div style="text-align: center; margin-bottom: 24px;">
@@ -745,9 +839,11 @@ function showOrderConfirmation(order, { emailError } = {}) {
 
     <div style="text-align: center; margin-bottom: 24px;">
       <p style="margin-bottom: 16px; font-size: 1.1rem; font-weight: 500; color: #333333;">Complete Payment with Venmo</p>
-      <a href="${safeVenmoUrl}" target="_blank" rel="noopener noreferrer" style="display: inline-block; background: linear-gradient(135deg, #8A7D6E 0%, #6B5F52 100%); color: #F5F1E9; padding: 16px 48px; border-radius: 12px; text-decoration: none; font-weight: 700; font-size: 1.15rem; box-shadow: 0 8px 16px rgba(138, 125, 110, 0.3); transition: all 0.3s; border: none;">
+      <button id="venmo-pay-btn" type="button" style="display: inline-block; background: linear-gradient(135deg, #8A7D6E 0%, #6B5F52 100%); color: #F5F1E9; padding: 16px 48px; border-radius: 12px; text-decoration: none; font-weight: 700; font-size: 1.15rem; box-shadow: 0 8px 16px rgba(138, 125, 110, 0.3); transition: all 0.3s; border: none; cursor: pointer;">
         Pay $${total} Now
-      </a>
+      </button>
+      <div id="venmo-guidance"></div>
+      <p style="margin-top: 12px;"><a href="${safeVenmoUrl}" target="_blank" rel="noopener noreferrer" style="color: #8A7D6E; font-size: 0.85rem; text-decoration: underline;">Or open Venmo web link directly</a></p>
     </div>
 
     ${
@@ -771,6 +867,15 @@ function showOrderConfirmation(order, { emailError } = {}) {
     `
     }
   `;
+
+  // Wire up Venmo smart payment button
+  const venmoBtn = document.getElementById('venmo-pay-btn');
+  if (venmoBtn && venmoPayment) {
+    venmoBtn.addEventListener('click', () => handleVenmoPayment(venmoPayment, total));
+  } else if (venmoBtn) {
+    // Fallback: no venmoPayment data, open web URL directly
+    venmoBtn.addEventListener('click', () => window.open(order.venmoUrl || '#', '_blank'));
+  }
 
   const modal = new bootstrap.Modal(document.getElementById('orderConfirmationModal'));
   modal.show();

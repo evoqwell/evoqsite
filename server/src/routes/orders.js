@@ -96,7 +96,7 @@ router.post('/', orderLimiter, ipReputationMiddleware, emailRateLimitMiddleware,
 
     const orderNumber = generateOrderNumber();
     const venmoNote = orderNumber;
-    const venmoUrl = buildVenmoUrl({
+    const venmoPayment = buildVenmoPaymentData({
       username: config.venmoUsername,
       amount: centsToDollars(totals.totalCents),
       note: venmoNote
@@ -143,7 +143,14 @@ router.post('/', orderLimiter, ipReputationMiddleware, emailRateLimitMiddleware,
 
     res.status(201).json({
       orderNumber,
-      venmoUrl,
+      venmoUrl: venmoPayment.webUrl,
+      venmoPayment: {
+        webUrl: venmoPayment.webUrl,
+        deepLink: venmoPayment.deepLink,
+        username: venmoPayment.username,
+        amount: venmoPayment.amount,
+        note: venmoPayment.note
+      },
       promoCode: promos.length > 0 ? promos[0].code : null,
       promoCodes: promos.map(p => p.code),
       totals: totals.toJSON(),
@@ -176,14 +183,17 @@ function generateOrderNumber() {
   return `EVOQ-${datePart}-${randomPart}`;
 }
 
-function buildVenmoUrl({ username, amount, note }) {
-  const base = `https://venmo.com/${encodeURIComponent(username)}`;
-  const params = new URLSearchParams({
-    txn: 'pay',
-    amount: amount.toFixed(2),
-    note
-  });
-  return `${base}?${params.toString()}`;
+function buildVenmoPaymentData({ username, amount, note }) {
+  const amountStr = amount.toFixed(2);
+  const commonParams = { txn: 'pay', amount: amountStr, note, audience: 'private' };
+
+  const webUrl = `https://venmo.com/${encodeURIComponent(username)}?` +
+    new URLSearchParams(commonParams).toString();
+
+  const deepLink = `venmo://paycharge?` +
+    new URLSearchParams({ ...commonParams, recipients: username }).toString();
+
+  return { username, amount: amountStr, note, webUrl, deepLink };
 }
 
 export default router;
