@@ -18,14 +18,12 @@ setInterval(() => {
 }, 5 * 60 * 1000); // Clean every 5 minutes
 
 /**
- * Generate a new CSRF token for a session/client
- * @param {string} sessionId - Unique identifier for the client session
+ * Generate a new CSRF token
  * @returns {string} - The generated CSRF token
  */
-export function generateCsrfToken(sessionId) {
+export function generateCsrfToken() {
   const token = crypto.randomBytes(32).toString('hex');
   tokenStore.set(token, {
-    sessionId,
     expiresAt: Date.now() + TOKEN_EXPIRY_MS,
     createdAt: Date.now()
   });
@@ -35,11 +33,10 @@ export function generateCsrfToken(sessionId) {
 /**
  * Validate a CSRF token
  * @param {string} token - The token to validate
- * @param {string} sessionId - The session ID to match against
  * @returns {boolean} - Whether the token is valid
  */
-export function validateCsrfToken(token, sessionId) {
-  if (!token || !sessionId) return false;
+export function validateCsrfToken(token) {
+  if (!token) return false;
 
   const tokenData = tokenStore.get(token);
   if (!tokenData) return false;
@@ -50,21 +47,7 @@ export function validateCsrfToken(token, sessionId) {
     return false;
   }
 
-  // Check session match
-  if (tokenData.sessionId !== sessionId) return false;
-
   return true;
-}
-
-/**
- * Get session ID from request
- * Uses a combination of IP and User-Agent as a simple session identifier
- * For more security, use actual session management
- */
-function getSessionId(req) {
-  const ip = req.ip || req.connection?.remoteAddress || 'unknown';
-  const userAgent = req.get('User-Agent') || 'unknown';
-  return crypto.createHash('sha256').update(`${ip}:${userAgent}`).digest('hex').substring(0, 32);
 }
 
 /**
@@ -94,9 +77,7 @@ export function csrfProtection(req, res, next) {
     });
   }
 
-  const sessionId = getSessionId(req);
-
-  if (!validateCsrfToken(token, sessionId)) {
+  if (!validateCsrfToken(token)) {
     console.warn(`[Security] Invalid CSRF token from ${anonymizeIpForLog(req.ip)} for ${req.method} ${req.path}`);
     return res.status(403).json({
       error: 'Invalid CSRF token',
@@ -111,8 +92,7 @@ export function csrfProtection(req, res, next) {
  * Route handler to get a new CSRF token
  */
 export function getCsrfToken(req, res) {
-  const sessionId = getSessionId(req);
-  const token = generateCsrfToken(sessionId);
+  const token = generateCsrfToken();
 
   res.json({
     csrfToken: token,
@@ -124,8 +104,7 @@ export function getCsrfToken(req, res) {
  * Middleware to attach CSRF token to response locals (for server-rendered pages)
  */
 export function attachCsrfToken(req, res, next) {
-  const sessionId = getSessionId(req);
-  res.locals.csrfToken = generateCsrfToken(sessionId);
+  res.locals.csrfToken = generateCsrfToken();
   next();
 }
 
