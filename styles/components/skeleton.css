@@ -1,0 +1,194 @@
+/* ============================================
+   SKELETON LOADERS - Loading State Placeholders
+   ============================================ */
+
+/* Base Skeleton */
+.skeleton {
+  background: linear-gradient(
+    90deg,
+    var(--sand) 25%,
+    var(--zen-cream) 50%,
+    var(--sand) 75%
+  );
+  background-size: 200% 100%;
+  animation: skeletonShimmer 1.5s infinite;
+  border-radius: var(--radius-default);
+}
+
+@keyframes skeletonShimmer {
+  0% {
+    background-position: 200% 0;
+  }
+  100% {
+    background-position: -200% 0;
+  }
+}
+
+/* Skeleton Text Lines */
+.skeleton-text {
+  height: 1em;
+  margin-bottom: var(--space-2);
+}
+
+.skeleton-text:last-child {
+  width: 70%;
+}
+
+/* Skeleton Title */
+.skeleton-title {
+  height: 1.5em;
+  width: 60%;
+  margin-bottom: var(--space-4);
+}
+
+/* Skeleton Button */
+.skeleton-button {
+  height: 44px;
+  width: 120px;
+}
+
+/* Skeleton Avatar */
+.skeleton-avatar {
+  width: 48px;
+  height: 48px;
+  border-radius: var(--radius-full);
+}
+
+/* Skeleton Image */
+.skeleton-image {
+  aspect-ratio: 1 / 1;
+  width: 100%;
+}
+
+/* Product Card Skeleton */
+.skeleton-product-card {
+  background: var(--white);
+  border-radius: 2px;
+  overflow: hidden;
+  box-shadow: var(--shadow-default);
+}
+
+.skeleton-product-card .skeleton-image {
+  background: linear-gradient(
+    90deg,
+    #F0EBE3 25%,
+    #FAF8F5 50%,
+    #F0EBE3 75%
+  );
+  background-size: 200% 100%;
+  animation: skeletonShimmer 1.5s infinite;
+}
+
+.skeleton-product-info {
+  padding: var(--space-6);
+}
+
+.skeleton-product-info .skeleton-text {
+  margin-bottom: var(--space-3);
+}
+
+/* Checkout Skeleton */
+.skeleton-checkout {
+  display: grid;
+  gap: var(--space-6);
+}
+
+.skeleton-checkout-item {
+  display: flex;
+  gap: var(--space-4);
+  padding: var(--space-4);
+  background: var(--white);
+  border-radius: var(--radius-default);
+}
+
+.skeleton-checkout-image {
+  width: 80px;
+  height: 80px;
+  flex-shrink: 0;
+}
+
+.skeleton-checkout-details {
+  flex: 1;
+}
+
+/* Form Skeleton */
+.skeleton-form-group {
+  margin-bottom: var(--space-6);
+}
+
+.skeleton-label {
+  height: 0.875em;
+  width: 100px;
+  margin-bottom: var(--space-2);
+}
+
+.skeleton-input {
+  height: 44px;
+  width: 100%;
+}
+
+/* Loading Overlay */
+.loading-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(245, 241, 233, 0.9);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: var(--z-modal);
+  opacity: 0;
+  visibility: hidden;
+  transition: all var(--transition-normal) var(--ease-out);
+}
+
+.loading-overlay.active {
+  opacity: 1;
+  visibility: visible;
+}
+
+/* Spinner */
+.spinner {
+  width: 48px;
+  height: 48px;
+  border: 3px solid var(--sand);
+  border-top-color: var(--stone);
+  border-radius: var(--radius-full);
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+/* Dots Loading */
+.loading-dots {
+  display: flex;
+  gap: var(--space-2);
+}
+
+.loading-dots span {
+  width: 8px;
+  height: 8px;
+  background: var(--stone);
+  border-radius: var(--radius-full);
+  animation: dotPulse 1.4s infinite;
+}
+
+.loading-dots span:nth-child(2) {
+  animation-delay: 0.2s;
+}
+
+.loading-dots span:nth-child(3) {
+  animation-delay: 0.4s;
+}
+
+@keyframes dotPulse {
+  0%, 80%, 100% {
+    transform: scale(0.6);
+    opacity: 0.5;
+  }
+  40% {
+    transform: scale(1);
+    opacity: 1;
+  }
+}

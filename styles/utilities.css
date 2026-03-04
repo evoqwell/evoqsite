@@ -1,0 +1,272 @@
+/* ============================================
+   UTILITY CLASSES
+   ============================================ */
+
+/* ===========================================
+   ACCESSIBILITY
+   =========================================== */
+
+/* Screen reader only */
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+/* Focus visible indicators */
+.focus-visible:focus-visible {
+  outline: 2px solid var(--stone);
+  outline-offset: 2px;
+}
+
+/* Skip link */
+.skip-link {
+  position: absolute;
+  top: -40px;
+  left: 0;
+  background: var(--charcoal);
+  color: var(--white);
+  padding: var(--space-2) var(--space-4);
+  z-index: var(--z-max);
+  transition: top var(--transition-fast) var(--ease-out);
+}
+
+.skip-link:focus {
+  top: 0;
+}
+
+/* Reduced motion support */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+/* High contrast mode support */
+@media (prefers-contrast: high) {
+  :root {
+    --box-shadow: 0 0 0 2px var(--charcoal);
+    --box-shadow-hover: 0 0 0 3px var(--charcoal);
+  }
+
+  .btn-primary,
+  .btn-secondary,
+  .btn-add-cart {
+    border: 2px solid currentColor;
+  }
+
+  .form-control {
+    border-width: 2px;
+  }
+}
+
+/* ===========================================
+   LAYOUT UTILITIES
+   =========================================== */
+
+/* Container */
+.container {
+  max-width: var(--container-xl);
+  margin: 0 auto;
+  padding: 0 var(--space-6);
+}
+
+.container-sm { max-width: var(--container-sm); }
+.container-md { max-width: var(--container-md); }
+.container-lg { max-width: var(--container-lg); }
+
+/* Flexbox */
+.flex { display: flex; }
+.inline-flex { display: inline-flex; }
+.flex-col { flex-direction: column; }
+.flex-wrap { flex-wrap: wrap; }
+.items-start { align-items: flex-start; }
+.items-center { align-items: center; }
+.items-end { align-items: flex-end; }
+.justify-start { justify-content: flex-start; }
+.justify-center { justify-content: center; }
+.justify-end { justify-content: flex-end; }
+.justify-between { justify-content: space-between; }
+.gap-1 { gap: var(--space-1); }
+.gap-2 { gap: var(--space-2); }
+.gap-4 { gap: var(--space-4); }
+.gap-6 { gap: var(--space-6); }
+.gap-8 { gap: var(--space-8); }
+
+/* Grid */
+.grid { display: grid; }
+.grid-cols-1 { grid-template-columns: repeat(1, 1fr); }
+.grid-cols-2 { grid-template-columns: repeat(2, 1fr); }
+.grid-cols-3 { grid-template-columns: repeat(3, 1fr); }
+.grid-cols-4 { grid-template-columns: repeat(4, 1fr); }
+
+/* ===========================================
+   SPACING UTILITIES
+   =========================================== */
+
+/* Margin */
+.m-0 { margin: 0; }
+.m-auto { margin: auto; }
+.mx-auto { margin-left: auto; margin-right: auto; }
+.my-4 { margin-top: var(--space-4); margin-bottom: var(--space-4); }
+.my-8 { margin-top: var(--space-8); margin-bottom: var(--space-8); }
+.mt-4 { margin-top: var(--space-4); }
+.mt-8 { margin-top: var(--space-8); }
+.mb-4 { margin-bottom: var(--space-4); }
+.mb-8 { margin-bottom: var(--space-8); }
+
+/* Padding */
+.p-0 { padding: 0; }
+.p-4 { padding: var(--space-4); }
+.p-6 { padding: var(--space-6); }
+.p-8 { padding: var(--space-8); }
+.px-4 { padding-left: var(--space-4); padding-right: var(--space-4); }
+.px-6 { padding-left: var(--space-6); padding-right: var(--space-6); }
+.py-4 { padding-top: var(--space-4); padding-bottom: var(--space-4); }
+.py-8 { padding-top: var(--space-8); padding-bottom: var(--space-8); }
+
+/* ===========================================
+   TYPOGRAPHY UTILITIES
+   =========================================== */
+
+.text-xs { font-size: var(--text-xs); }
+.text-sm { font-size: var(--text-sm); }
+.text-base { font-size: var(--text-base); }
+.text-lg { font-size: var(--text-lg); }
+.text-xl { font-size: var(--text-xl); }
+.text-2xl { font-size: var(--text-2xl); }
+
+.font-normal { font-weight: var(--font-normal); }
+.font-medium { font-weight: var(--font-medium); }
+.font-semibold { font-weight: var(--font-semibold); }
+.font-bold { font-weight: var(--font-bold); }
+
+.text-left { text-align: left; }
+.text-center { text-align: center; }
+.text-right { text-align: right; }
+
+.uppercase { text-transform: uppercase; }
+.capitalize { text-transform: capitalize; }
+
+.leading-tight { line-height: var(--leading-tight); }
+.leading-normal { line-height: var(--leading-normal); }
+.leading-relaxed { line-height: var(--leading-relaxed); }
+
+/* ===========================================
+   COLOR UTILITIES
+   =========================================== */
+
+.text-charcoal { color: var(--charcoal); }
+.text-stone { color: var(--stone); }
+.text-bone { color: var(--bone); }
+.text-white { color: var(--white); }
+
+.bg-bone { background-color: var(--bone); }
+.bg-sand { background-color: var(--sand); }
+.bg-white { background-color: var(--white); }
+.bg-charcoal { background-color: var(--charcoal); }
+
+/* ===========================================
+   DISPLAY UTILITIES
+   =========================================== */
+
+.hidden { display: none; }
+.block { display: block; }
+.inline-block { display: inline-block; }
+.invisible { visibility: hidden; }
+.visible { visibility: visible; }
+
+/* Responsive display */
+@media (max-width: 768px) {
+  .hidden-mobile { display: none; }
+}
+
+@media (min-width: 769px) {
+  .hidden-desktop { display: none; }
+}
+
+/* ===========================================
+   POSITION UTILITIES
+   =========================================== */
+
+.relative { position: relative; }
+.absolute { position: absolute; }
+.fixed { position: fixed; }
+.sticky { position: sticky; }
+
+/* ===========================================
+   VISUAL UTILITIES
+   =========================================== */
+
+.rounded { border-radius: var(--radius-default); }
+.rounded-lg { border-radius: var(--radius-lg); }
+.rounded-full { border-radius: var(--radius-full); }
+
+.shadow { box-shadow: var(--shadow-default); }
+.shadow-md { box-shadow: var(--shadow-md); }
+.shadow-lg { box-shadow: var(--shadow-lg); }
+
+.overflow-hidden { overflow: hidden; }
+.overflow-auto { overflow: auto; }
+
+.opacity-50 { opacity: 0.5; }
+.opacity-75 { opacity: 0.75; }
+
+/* ===========================================
+   ANIMATION UTILITIES
+   =========================================== */
+
+.animate-fade-in {
+  animation: fadeIn var(--transition-normal) var(--ease-out);
+}
+
+.animate-slide-up {
+  animation: slideUp var(--transition-normal) var(--ease-out);
+}
+
+.animate-slide-down {
+  animation: slideDown var(--transition-normal) var(--ease-out);
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes slideUp {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes slideDown {
+  from {
+    opacity: 0;
+    transform: translateY(-20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Transition utilities */
+.transition { transition: all var(--transition-speed) var(--ease-out); }
+.transition-fast { transition: all var(--transition-fast) var(--ease-out); }
+.transition-slow { transition: all var(--transition-slow) var(--ease-out); }

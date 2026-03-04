@@ -1,0 +1,236 @@
+/* ============================================
+   MODALS - Dialog and Overlay Components
+   ============================================ */
+
+/* Modal Backdrop */
+.modal-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(26, 24, 23, 0.6);
+  backdrop-filter: blur(4px);
+  z-index: var(--z-modal-backdrop);
+  opacity: 0;
+  visibility: hidden;
+  transition: all var(--transition-normal) var(--ease-out);
+}
+
+.modal-backdrop.active {
+  opacity: 1;
+  visibility: visible;
+}
+
+/* Modal Container */
+.modal {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%) scale(0.95);
+  background: var(--white);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-2xl);
+  z-index: var(--z-modal);
+  max-width: 90vw;
+  max-height: 90vh;
+  overflow: auto;
+  opacity: 0;
+  visibility: hidden;
+  transition: all var(--transition-normal) var(--ease-out-expo);
+}
+
+.modal.active {
+  opacity: 1;
+  visibility: visible;
+  transform: translate(-50%, -50%) scale(1);
+}
+
+/* Modal Header */
+.modal-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: var(--space-6);
+  border-bottom: 1px solid var(--sand);
+}
+
+.modal-title {
+  font-family: var(--font-display);
+  font-size: var(--text-2xl);
+  font-weight: var(--font-medium);
+  color: var(--charcoal);
+  margin: 0;
+}
+
+.modal-close {
+  width: 44px;
+  height: 44px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: transparent;
+  border: none;
+  border-radius: var(--radius-full);
+  cursor: pointer;
+  color: var(--stone);
+  transition: all var(--transition-fast) var(--ease-out);
+}
+
+.modal-close:hover {
+  background: var(--sand);
+  color: var(--charcoal);
+}
+
+/* Modal Body */
+.modal-body {
+  padding: var(--space-6);
+}
+
+/* Modal Footer */
+.modal-footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: var(--space-4);
+  padding: var(--space-6);
+  border-top: 1px solid var(--sand);
+}
+
+/* Age Verification Modal */
+.age-verification-modal {
+  width: 100%;
+  max-width: 480px;
+  text-align: center;
+  padding: var(--space-12) var(--space-8);
+}
+
+.age-verification-logo {
+  height: 60px;
+  margin: 0 auto var(--space-6);
+}
+
+.age-verification-title {
+  font-family: var(--font-body);
+  font-size: var(--text-2xl);
+  font-weight: var(--font-semibold);
+  color: var(--charcoal);
+  margin-bottom: var(--space-4);
+}
+
+.age-verification-text {
+  font-family: var(--font-display);
+  font-size: var(--text-lg);
+  color: var(--stone);
+  margin-bottom: var(--space-8);
+  line-height: var(--leading-relaxed);
+}
+
+.age-verification-buttons {
+  display: flex;
+  gap: var(--space-4);
+  justify-content: center;
+}
+
+.age-verification-buttons .btn-primary {
+  min-width: 120px;
+}
+
+.age-verification-buttons .btn-secondary {
+  min-width: 120px;
+  width: auto;
+  margin-top: 0;
+}
+
+/* Product Modal / Quick View */
+.product-modal {
+  width: 100%;
+  max-width: 900px;
+}
+
+.product-modal-content {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--space-8);
+}
+
+.product-modal-image {
+  background: linear-gradient(
+    165deg,
+    #FAF8F5 0%,
+    #F0EBE3 50%,
+    #E8E2D8 100%
+  );
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: var(--space-8);
+  border-radius: var(--radius-lg);
+}
+
+.product-modal-image img {
+  max-width: 100%;
+  max-height: 400px;
+  object-fit: contain;
+}
+
+.product-modal-info {
+  padding: var(--space-6) 0;
+}
+
+/* Order Confirmation Modal */
+.order-confirmation-modal {
+  width: 100%;
+  max-width: 500px;
+  text-align: center;
+  padding: var(--space-12) var(--space-8);
+}
+
+.order-confirmation-icon {
+  width: 80px;
+  height: 80px;
+  margin: 0 auto var(--space-6);
+  background: #d4edda;
+  border-radius: var(--radius-full);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.order-confirmation-icon svg {
+  width: 40px;
+  height: 40px;
+  color: #155724;
+}
+
+.order-confirmation-title {
+  font-family: var(--font-body);
+  font-size: var(--text-2xl);
+  font-weight: var(--font-semibold);
+  color: var(--charcoal);
+  margin-bottom: var(--space-4);
+}
+
+.order-confirmation-details {
+  background: var(--zen-cream);
+  padding: var(--space-6);
+  border-radius: var(--radius-lg);
+  margin: var(--space-6) 0;
+}
+
+/* Mobile Modal Adjustments */
+@media (max-width: 768px) {
+  .modal {
+    max-width: 95vw;
+    max-height: 85vh;
+  }
+
+  .product-modal-content {
+    grid-template-columns: 1fr;
+  }
+
+  .age-verification-buttons {
+    flex-direction: column;
+  }
+
+  .age-verification-buttons .btn-primary,
+  .age-verification-buttons .btn-secondary {
+    width: 100%;
+  }
+}

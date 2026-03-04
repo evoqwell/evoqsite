@@ -1,0 +1,221 @@
+/* ============================================
+   BUTTONS
+   ============================================ */
+
+/* Base Button Styles */
+.btn-primary,
+.btn-secondary,
+.btn-add-cart {
+  font-family: var(--font-body);
+  font-size: var(--text-base);
+  font-weight: var(--font-semibold);
+  padding: var(--space-3) var(--space-8);
+  border: none;
+  border-radius: var(--radius-default);
+  cursor: pointer;
+  transition: all var(--transition-speed) var(--ease-out);
+  text-align: center;
+  display: inline-block;
+  position: relative;
+  overflow: hidden;
+}
+
+/* Ripple effect for buttons */
+.btn-primary::after,
+.btn-secondary::after,
+.btn-add-cart::after {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 0;
+  height: 0;
+  background: rgba(255, 255, 255, 0.2);
+  border-radius: 50%;
+  transform: translate(-50%, -50%);
+  transition: width 0.6s ease, height 0.6s ease;
+}
+
+.btn-primary:active::after,
+.btn-secondary:active::after,
+.btn-add-cart:active::after {
+  width: 300px;
+  height: 300px;
+}
+
+/* Primary Button */
+.btn-primary {
+  background-color: var(--stone);
+  color: var(--bone);
+}
+
+.btn-primary:hover {
+  background-color: var(--matte);
+  transform: translateY(-2px);
+  box-shadow: var(--box-shadow-hover);
+}
+
+.btn-primary:focus-visible {
+  outline: 2px solid var(--charcoal);
+  outline-offset: 2px;
+}
+
+.btn-primary:disabled,
+.btn-primary.btn-disabled,
+.btn-primary[aria-disabled="true"] {
+  background-color: #ccc;
+  color: #666;
+  cursor: not-allowed;
+  opacity: 0.6;
+  transform: none;
+  box-shadow: none;
+  pointer-events: none;
+}
+
+.btn-primary:disabled:hover,
+.btn-primary.btn-disabled:hover {
+  background-color: #ccc;
+  transform: none;
+  box-shadow: none;
+}
+
+/* Secondary Button */
+.btn-secondary {
+  background-color: var(--sand);
+  color: var(--charcoal);
+  width: 100%;
+  margin-top: var(--space-4);
+}
+
+.btn-secondary:hover {
+  background-color: var(--stone);
+  color: var(--bone);
+  transform: translateY(-2px);
+}
+
+.btn-secondary:active {
+  transform: translateY(0);
+}
+
+/* Add to Cart Button */
+.btn-add-cart {
+  background-color: var(--stone);
+  color: var(--bone);
+  width: 100%;
+  margin-top: var(--space-2);
+}
+
+.btn-add-cart:hover {
+  background-color: var(--matte);
+  transform: scale(1.05);
+}
+
+.btn-add-cart:disabled,
+.btn-add-cart[aria-disabled='true'] {
+  background-color: rgba(107, 95, 82, 0.25);
+  color: rgba(47, 42, 37, 0.65);
+  cursor: not-allowed;
+  transform: none;
+  box-shadow: none;
+}
+
+.btn-add-cart:disabled:hover,
+.btn-add-cart[aria-disabled='true']:hover {
+  background-color: rgba(107, 95, 82, 0.25);
+  transform: none;
+  box-shadow: none;
+}
+
+/* Add to cart success animation */
+.btn-add-cart.success {
+  animation: addToCartSuccess 0.5s var(--ease-spring);
+}
+
+@keyframes addToCartSuccess {
+  0% { transform: scale(1); }
+  30% { transform: scale(0.95); }
+  60% { transform: scale(1.05); }
+  100% { transform: scale(1); }
+}
+
+/* COA Button Styles */
+.product-coa {
+  margin: var(--space-3) 0;
+}
+
+.btn-coa {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: var(--space-2) var(--space-4);
+  background-color: transparent;
+  color: var(--stone);
+  border: 1px solid var(--stone);
+  border-radius: var(--radius-default);
+  text-decoration: none;
+  font-size: var(--text-sm);
+  font-weight: var(--font-medium);
+  transition: all var(--transition-speed) var(--ease-out);
+}
+
+.btn-coa:hover {
+  background-color: var(--stone);
+  color: var(--bone);
+  transform: translateY(-2px);
+  box-shadow: 0 2px 4px rgba(47, 42, 37, 0.2);
+}
+
+.btn-coa svg {
+  width: 16px;
+  height: 16px;
+}
+
+/* CTA Container */
+.cta-container {
+  text-align: center;
+  margin-top: var(--space-8);
+}
+
+/* Icon Button */
+.btn-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: var(--space-2);
+  min-width: 44px;
+  min-height: 44px;
+  background: transparent;
+  border: none;
+  border-radius: var(--radius-default);
+  cursor: pointer;
+  transition: all var(--transition-speed) var(--ease-out);
+}
+
+.btn-icon:hover {
+  background-color: rgba(138, 125, 110, 0.1);
+}
+
+/* Loading state for buttons */
+.btn-loading {
+  position: relative;
+  color: transparent !important;
+  pointer-events: none;
+}
+
+.btn-loading::before {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 20px;
+  height: 20px;
+  margin: -10px 0 0 -10px;
+  border: 2px solid currentColor;
+  border-right-color: transparent;
+  border-radius: 50%;
+  animation: btnSpinner 0.75s linear infinite;
+}
+
+@keyframes btnSpinner {
+  to { transform: rotate(360deg); }
+}

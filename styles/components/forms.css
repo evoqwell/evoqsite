@@ -1,0 +1,285 @@
+/* ============================================
+   FORMS - Enhanced Form Components
+   ============================================ */
+
+.contact-form,
+.checkout-form {
+  max-width: 600px;
+  margin: var(--space-8) auto 0;
+}
+
+/* Form Group with Enhanced Validation */
+.form-group {
+  margin-bottom: var(--space-6);
+  position: relative;
+}
+
+.form-group label {
+  font-family: var(--font-body);
+  font-weight: var(--font-medium);
+  display: block;
+  margin-bottom: var(--space-2);
+  color: var(--charcoal);
+  transition: color var(--transition-fast) var(--ease-out);
+}
+
+/* Required field indicator */
+.form-group label.required::after {
+  content: ' *';
+  color: var(--color-error);
+}
+
+/* Help text under fields */
+.form-help {
+  font-size: var(--text-sm);
+  color: var(--stone);
+  margin-top: var(--space-1);
+  display: block;
+}
+
+/* Form Control - Base Input Styles */
+.form-control {
+  width: 100%;
+  padding: var(--space-3);
+  border: 2px solid var(--sand);
+  border-radius: var(--radius-default);
+  font-family: var(--font-display);
+  font-size: var(--text-base);
+  background-color: var(--white);
+  transition: all var(--transition-speed) var(--ease-out);
+}
+
+.form-control::placeholder {
+  color: var(--stone);
+  opacity: 0.7;
+}
+
+.form-control:hover {
+  border-color: var(--stone);
+}
+
+.form-control:focus {
+  outline: none;
+  border-color: var(--stone);
+  box-shadow: 0 0 0 3px rgba(138, 125, 110, 0.15);
+}
+
+/* Valid State - Green checkmark */
+.form-control.is-valid {
+  border-color: var(--color-success);
+  background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%234CAF50'%3e%3cpath d='M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z'/%3e%3c/svg%3e");
+  background-repeat: no-repeat;
+  background-position: right 12px center;
+  background-size: 20px;
+  padding-right: 44px;
+}
+
+.form-control.is-valid:focus {
+  box-shadow: 0 0 0 3px rgba(76, 175, 80, 0.15);
+}
+
+/* Invalid State */
+.form-control.is-invalid {
+  border-color: var(--color-error);
+  background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%23f44336'%3e%3cpath d='M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-2h2v2zm0-4h-2V7h2v6z'/%3e%3c/svg%3e");
+  background-repeat: no-repeat;
+  background-position: right 12px center;
+  background-size: 20px;
+  padding-right: 44px;
+}
+
+.form-control.is-invalid:focus {
+  box-shadow: 0 0 0 3px rgba(244, 67, 54, 0.15);
+}
+
+/* Inline Error Messages */
+.invalid-feedback {
+  color: var(--color-error);
+  font-size: var(--text-sm);
+  margin-top: var(--space-1);
+  display: none;
+  animation: slideDown 0.2s var(--ease-out);
+}
+
+@keyframes slideDown {
+  from {
+    opacity: 0;
+    transform: translateY(-4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.form-control.is-invalid ~ .invalid-feedback {
+  display: block;
+}
+
+/* Valid feedback (optional success message) */
+.valid-feedback {
+  color: var(--color-success);
+  font-size: var(--text-sm);
+  margin-top: var(--space-1);
+  display: none;
+}
+
+.form-control.is-valid ~ .valid-feedback {
+  display: block;
+}
+
+/* Textarea */
+textarea.form-control {
+  resize: vertical;
+  min-height: 120px;
+}
+
+/* Form Response Messages */
+.form-response {
+  margin-top: var(--space-6);
+  padding: var(--space-4);
+  border-radius: var(--radius-default);
+  display: none;
+  animation: fadeIn 0.3s var(--ease-out);
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+.form-response.success {
+  background-color: #d4edda;
+  color: #155724;
+  border: 1px solid #c3e6cb;
+  display: block;
+}
+
+.form-response.error {
+  background-color: #f8d7da;
+  color: #721c24;
+  border: 1px solid #f5c6cb;
+  display: block;
+}
+
+/* Progressive Disclosure - Collapsible sections */
+.form-section {
+  margin-bottom: var(--space-8);
+}
+
+.form-section-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: var(--space-4);
+  background-color: var(--zen-cream);
+  border-radius: var(--radius-default);
+  cursor: pointer;
+  transition: background-color var(--transition-fast) var(--ease-out);
+}
+
+.form-section-header:hover {
+  background-color: var(--sand);
+}
+
+.form-section-title {
+  font-family: var(--font-body);
+  font-weight: var(--font-semibold);
+  font-size: var(--text-lg);
+  color: var(--charcoal);
+  margin: 0;
+}
+
+.form-section-toggle {
+  transition: transform var(--transition-fast) var(--ease-out);
+}
+
+.form-section.collapsed .form-section-toggle {
+  transform: rotate(-90deg);
+}
+
+.form-section-content {
+  padding-top: var(--space-4);
+  max-height: 1000px;
+  overflow: hidden;
+  transition: max-height var(--transition-normal) var(--ease-out);
+}
+
+.form-section.collapsed .form-section-content {
+  max-height: 0;
+  padding-top: 0;
+}
+
+/* Input with icon */
+.input-with-icon {
+  position: relative;
+}
+
+.input-with-icon .form-control {
+  padding-left: 44px;
+}
+
+.input-with-icon .input-icon {
+  position: absolute;
+  left: 14px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: var(--stone);
+  width: 20px;
+  height: 20px;
+}
+
+/* Input group (for inline buttons) */
+.input-group {
+  display: flex;
+  gap: var(--space-2);
+}
+
+.input-group .form-control {
+  flex: 1;
+}
+
+.input-group .btn-primary {
+  flex-shrink: 0;
+}
+
+/* Checkbox and Radio styles */
+.form-check {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-3);
+  margin-bottom: var(--space-3);
+}
+
+.form-check-input {
+  width: 20px;
+  height: 20px;
+  margin-top: 2px;
+  accent-color: var(--stone);
+  cursor: pointer;
+}
+
+.form-check-label {
+  font-size: var(--text-base);
+  color: var(--charcoal);
+  cursor: pointer;
+}
+
+/* Select dropdown */
+select.form-control {
+  appearance: none;
+  background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%238A7D6E'%3e%3cpath d='M7 10l5 5 5-5z'/%3e%3c/svg%3e");
+  background-repeat: no-repeat;
+  background-position: right 12px center;
+  background-size: 24px;
+  padding-right: 44px;
+}
+
+/* Field loading state */
+.form-control.is-loading {
+  background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%238A7D6E'%3e%3cpath d='M12 2a10 10 0 0 0-10 10h4a6 6 0 0 1 6-6V2z'%3e%3canimateTransform attributeName='transform' type='rotate' from='0 12 12' to='360 12 12' dur='1s' repeatCount='indefinite'/%3e%3c/path%3e%3c/svg%3e");
+  background-repeat: no-repeat;
+  background-position: right 12px center;
+  background-size: 20px;
+  padding-right: 44px;
+}
