@@ -4,7 +4,7 @@ import { resolve } from 'path';
 // https://vitejs.dev/config/
 export default defineConfig(({ mode }) => {
   const env = loadEnv(mode, process.cwd(), '');
-  const siteUrl = env.VITE_SITE_URL || 'https://evoqwell.netlify.app';
+  const siteUrl = env.VITE_SITE_URL || 'https://evoqwell.shop';
 
   return {
     build: {

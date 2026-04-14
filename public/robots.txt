@@ -1,4 +1,4 @@
-# robots.txt for EVOQ Wellness (evoqwell.netlify.app)
+# robots.txt for EVOQ Wellness (evoqwell.shop)
 # Research-grade peptides for lawful research purposes
 
 # Allow all search engines to crawl and index the site
@@ -43,4 +43,4 @@ Disallow: /admin-products.html
 Crawl-delay: 1
 
 # Sitemap location
-Sitemap: https://evoqwell.netlify.app/sitemap.xml
+Sitemap: https://evoqwell.shop/sitemap.xml
