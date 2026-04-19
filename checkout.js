@@ -6,7 +6,8 @@ import { sendOrderEmails } from './lib/email.js';
 let appliedPromos = [];
 let shippingRate = 10;
 let checkoutFormValidator = null;
-let bacWaterProduct = null; // Store BAC water product info
+let bacWaterProducts = []; // All BAC water variants in catalog
+let bacWaterProduct = null; // Default variant to offer in the reminder modal (cheapest)
 
 document.addEventListener('DOMContentLoaded', async () => {
   await hydrateCheckoutSettings();
@@ -23,9 +24,16 @@ async function hydrateCheckoutSettings() {
       shippingRate = meta.shippingFlatRate;
     }
 
-    // Find BAC water product dynamically (matches "BAC" in the name, case-insensitive)
-    bacWaterProduct = products.find(product =>
+    // Collect all BAC water variants (any product whose name contains "bac").
+    // Any variant in the cart satisfies the reconstitution prompt.
+    bacWaterProducts = products.filter(product =>
       product.name && product.name.toLowerCase().includes('bac')
+    );
+
+    // Offer the cheapest variant in the reminder modal so the nudge isn't an upsell.
+    bacWaterProduct = bacWaterProducts.reduce(
+      (cheapest, current) => (!cheapest || current.price < cheapest.price ? current : cheapest),
+      null
     );
 
     if (!bacWaterProduct) {
@@ -572,9 +580,10 @@ async function handleCheckoutSubmit(event) {
     return;
   }
 
-  // Check if BAC water is in cart (only if we found a BAC water product and user hasn't declined)
+  // Check if any BAC water variant is in cart (only if catalog has one and user hasn't declined)
   if (bacWaterProduct && !bacWaterDeclined) {
-    const hasBacWater = cart.some(item => item.id === bacWaterProduct.id);
+    const bacWaterIds = new Set(bacWaterProducts.map(product => product.id));
+    const hasBacWater = cart.some(item => bacWaterIds.has(item.id));
     if (!hasBacWater) {
       // Show BAC water reminder modal instead of proceeding
       showBacWaterReminderModal(event);
