@@ -21,6 +21,19 @@
   to = "/admin.html"
   status = 200
 
+# Legacy favicon + apple-touch-icon probes. Browsers and iOS look for these
+# at well-known root paths regardless of <link rel> tags in HTML. Alias them
+# all to Logo.PNG so they return 200 instead of cluttering logs with 404s.
+[[redirects]]
+  from = "/favicon.ico"
+  to = "/Logo.PNG"
+  status = 200
+
+[[redirects]]
+  from = "/apple-touch-icon*"
+  to = "/Logo.PNG"
+  status = 200
+
 # Redirect rules - only redirect when file not found
 # This allows HTML pages and static assets to be served normally
 [[redirects]]
