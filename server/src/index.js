@@ -1,3 +1,6 @@
+// MUST be the first import — sets process.env.TZ before anything else loads.
+import './config/tz.js';
+
 import app from './app.js';
 import { connectDatabase } from './config/database.js';
 import { config } from './config/env.js';
