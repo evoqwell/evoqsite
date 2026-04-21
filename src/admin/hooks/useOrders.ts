@@ -107,7 +107,7 @@ type RawSummary = {
 
 // ---------- Invalidation helper ----------
 
-function invalidateOrderQueries(qc: QueryClient) {
+export function invalidateOrderQueries(qc: QueryClient) {
   qc.invalidateQueries({ queryKey: ['orders', 'list'] });
   qc.invalidateQueries({ queryKey: ['orders', 'counts'] });
   qc.invalidateQueries({ queryKey: ['orders', 'summary'] });

@@ -2,15 +2,18 @@ import { useMemo, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { Search, ShoppingBag } from 'lucide-react';
 import { toast } from 'sonner';
+import { useQueryClient } from '@tanstack/react-query';
+import { deleteAdminOrder } from '../../../lib/adminApi.js';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Skeleton } from '@/components/ui/skeleton';
 import { cn } from '@/lib/utils';
+import { ConfirmDialog } from '../components/ConfirmDialog';
 import { DataTable, type Column } from '../components/DataTable';
 import { EmptyState } from '../components/EmptyState';
 import { StatusChip } from '../components/StatusChip';
 import {
-  useDeleteOrder,
+  invalidateOrderQueries,
   useOrderCounts,
   useOrdersList,
   useUpdateOrderStatus,
@@ -50,6 +53,10 @@ export function OrdersPage() {
 
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [limit, setLimit] = useState(INITIAL_PAGE_SIZE);
+  const [confirmBulkDelete, setConfirmBulkDelete] = useState(false);
+  const [bulkDeleting, setBulkDeleting] = useState(false);
+
+  const queryClient = useQueryClient();
 
   // Server-side status filter + pagination. Page-size grows on "Load more" —
   // simpler than accumulating pages client-side, and the server caps at 200.
@@ -59,7 +66,6 @@ export function OrdersPage() {
   });
   const { data: counts } = useOrderCounts();
   const updateStatus = useUpdateOrderStatus();
-  const deleteOrder = useDeleteOrder();
 
   const items = useMemo(() => data?.items ?? [], [data]);
   const total = data?.total ?? 0;
@@ -210,16 +216,25 @@ export function OrdersPage() {
   async function bulkDelete() {
     const ids = Array.from(selected);
     if (ids.length === 0) return;
-    const results = await Promise.allSettled(
-      ids.map((orderNumber) => deleteOrder.mutateAsync(orderNumber))
-    );
-    const ok = results.filter((r) => r.status === 'fulfilled').length;
-    const failed = results.length - ok;
-    if (ok > 0) {
-      toast.success(`Deleted ${ok} ${ok === 1 ? 'order' : 'orders'}`);
+    setBulkDeleting(true);
+    try {
+      // Hit the raw API instead of useDeleteOrder.mutateAsync so we invalidate
+      // once after the whole batch completes rather than N times (each
+      // mutation's onSuccess would re-fire all four order-related queries).
+      const results = await Promise.allSettled(
+        ids.map((orderNumber) => deleteAdminOrder(null, orderNumber))
+      );
+      const ok = results.filter((r) => r.status === 'fulfilled').length;
+      const failed = results.length - ok;
+      if (ok > 0) {
+        toast.success(`Deleted ${ok} ${ok === 1 ? 'order' : 'orders'}`);
+      }
+      if (failed > 0) toast.error(`${failed} failed to delete`);
+      invalidateOrderQueries(queryClient);
+      setSelected(new Set());
+    } finally {
+      setBulkDeleting(false);
     }
-    if (failed > 0) toast.error(`${failed} failed to delete`);
-    setSelected(new Set());
   }
 
   const hasFilters = activeStatus !== 'all' || q.length > 0;
@@ -302,8 +317,8 @@ export function OrdersPage() {
             <Button
               size="sm"
               variant="destructive"
-              onClick={bulkDelete}
-              disabled={deleteOrder.isPending}
+              onClick={() => setConfirmBulkDelete(true)}
+              disabled={bulkDeleting}
             >
               Delete
             </Button>
@@ -352,6 +367,16 @@ export function OrdersPage() {
           )}
         </>
       )}
+
+      <ConfirmDialog
+        open={confirmBulkDelete}
+        onOpenChange={setConfirmBulkDelete}
+        title={`Delete ${selected.size} ${selected.size === 1 ? 'order' : 'orders'}?`}
+        description="This cannot be undone."
+        confirmText={`Delete ${selected.size === 1 ? 'order' : `${selected.size} orders`}`}
+        confirmVariant="destructive"
+        onConfirm={bulkDelete}
+      />
     </div>
   );
 }
