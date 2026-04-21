@@ -58,7 +58,7 @@ export function useAdminAuth() {
     } else {
       try { localStorage.removeItem(REMEMBER_KEY); } catch { /* ignore */ }
     }
-    await adminLogin(token);
+    await adminLogin(token, remember);
     setIsAuthed(isAuthenticated());
     prefetchDashboardQueries();
   }, []);

@@ -21,8 +21,10 @@ const config = {
   admin: {
     accessToken: process.env.ADMIN_ACCESS_TOKEN || '',
     jwtSecret: process.env.JWT_SECRET || process.env.ADMIN_ACCESS_TOKEN || 'dev-jwt-secret-change-in-production',
-    jwtExpiresIn: '30m', // 30 minutes
-    sessionTimeout: 30 * 60 * 1000 // 30 minutes in milliseconds
+    jwtExpiresIn: '30m', // 30 minutes (default, no Remember me)
+    jwtExpiresInRemember: '30d', // 30 days when Remember me is checked
+    sessionTimeout: 30 * 60 * 1000, // 30 minutes in milliseconds
+    sessionTimeoutRemember: 30 * 24 * 60 * 60 * 1000 // 30 days in milliseconds
   }
 };
 

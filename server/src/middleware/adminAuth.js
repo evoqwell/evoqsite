@@ -36,17 +36,22 @@ setInterval(() => {
 /**
  * Generate a JWT token for admin access
  * @param {string} adminId - Identifier for the admin (can be 'admin' for single-user system)
+ * @param {boolean} remember - If true, issue a long-lived token for Remember me
  * @returns {string} JWT token
  */
-export function generateAdminToken(adminId = 'admin') {
+export function generateAdminToken(adminId = 'admin', remember = false) {
+  const expiresIn = remember
+    ? config.admin.jwtExpiresInRemember
+    : config.admin.jwtExpiresIn;
   return jwt.sign(
     {
       sub: adminId,
       role: 'admin',
+      remember: Boolean(remember),
       iat: Math.floor(Date.now() / 1000)
     },
     config.admin.jwtSecret,
-    { expiresIn: config.admin.jwtExpiresIn }
+    { expiresIn }
   );
 }
 
@@ -123,7 +128,7 @@ export function requireAdmin(req, res, next) {
  * Login handler - validates access token and returns JWT
  */
 export function adminLogin(req, res) {
-  const { accessToken } = req.body;
+  const { accessToken, remember } = req.body;
 
   if (!config.admin.accessToken) {
     return res.status(503).json({ error: 'Admin access is not configured.' });
@@ -134,15 +139,18 @@ export function adminLogin(req, res) {
     return res.status(401).json({ error: 'Invalid access token' });
   }
 
-  const token = generateAdminToken();
+  const rememberMe = Boolean(remember);
+  const token = generateAdminToken('admin', rememberMe);
   const decoded = jwt.decode(token);
 
-  console.log(`[Admin] Successful login from ${anonymizeIpForLog(req.ip)}`);
+  console.log(`[Admin] Successful login from ${anonymizeIpForLog(req.ip)}${rememberMe ? ' (remember)' : ''}`);
 
   res.json({
     token,
     expiresAt: decoded.exp * 1000,
-    expiresIn: config.admin.sessionTimeout
+    expiresIn: rememberMe
+      ? config.admin.sessionTimeoutRemember
+      : config.admin.sessionTimeout
   });
 }
 
@@ -169,14 +177,18 @@ export function refreshToken(req, res) {
   // Invalidate old token
   invalidateToken(token);
 
-  // Issue new token
-  const newToken = generateAdminToken(req.admin?.sub);
+  // Preserve the remember flag across refreshes so a long-lived session
+  // doesn't silently revert to a 30-minute token.
+  const remember = Boolean(req.admin?.remember);
+  const newToken = generateAdminToken(req.admin?.sub, remember);
   const decoded = jwt.decode(newToken);
 
   res.json({
     token: newToken,
     expiresAt: decoded.exp * 1000,
-    expiresIn: config.admin.sessionTimeout
+    expiresIn: remember
+      ? config.admin.sessionTimeoutRemember
+      : config.admin.sessionTimeout
   });
 }
 

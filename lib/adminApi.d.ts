@@ -11,7 +11,7 @@ export interface SessionCallbacks {
 }
 
 export function setSessionCallbacks(callbacks: SessionCallbacks): void;
-export function adminLogin(accessToken: string): Promise<AdminLoginResponse>;
+export function adminLogin(accessToken: string, remember?: boolean): Promise<AdminLoginResponse>;
 export function adminLogout(): Promise<void>;
 export function refreshAdminToken(): Promise<AdminLoginResponse | null>;
 export function getSessionInfo(): Promise<{ authenticated: boolean; [key: string]: unknown }>;
