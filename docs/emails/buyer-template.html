@@ -1,0 +1,134 @@
+<!--
+EVOQ Buyer Order Confirmation · EmailJS template
+Paste the body below into EmailJS → Email Templates → (your buyer template) → Content tab.
+
+Subject line (put in the Subject field, not the body):
+  Order #{{order_number}} received — thank you from EVOQ
+
+All {{...}} placeholders are supplied by lib/email.js. Unused placeholders render as empty strings.
+-->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Order confirmation</title>
+</head>
+<body style="margin:0;padding:0;background-color:#f5f1e9;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,'Helvetica Neue',Arial,sans-serif;color:#2f2a25;">
+  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="background-color:#f5f1e9;">
+    <tr>
+      <td align="center" style="padding:32px 16px;">
+        <table role="presentation" width="600" cellpadding="0" cellspacing="0" border="0" style="max-width:600px;width:100%;">
+
+          <!-- Logo header -->
+          <tr>
+            <td align="center" style="padding-bottom:24px;">
+              <img src="{{logo_url}}" alt="EVOQ" width="64" height="64" style="display:block;border:0;border-radius:12px;">
+            </td>
+          </tr>
+
+          <!-- White content card -->
+          <tr>
+            <td style="background:#ffffff;border-radius:12px;padding:40px 32px;box-shadow:0 2px 8px rgba(47,42,37,0.06);">
+
+              <!-- Greeting -->
+              <h1 style="margin:0 0 12px 0;font-family:Georgia,'Times New Roman',serif;font-size:26px;line-height:1.2;color:#2f2a25;font-weight:normal;">
+                Thank you, {{customer_name}}.
+              </h1>
+              <p style="margin:0 0 28px 0;font-size:15px;line-height:1.6;color:#5c544c;">
+                We've received your order. Below is your summary — complete the Venmo payment to get it on its way.
+              </p>
+
+              <!-- Order number pill -->
+              <table role="presentation" cellpadding="0" cellspacing="0" border="0" style="margin:0 0 32px 0;">
+                <tr>
+                  <td style="background:#f5f1e9;padding:10px 16px;border-radius:8px;font-size:13px;color:#6b5f52;letter-spacing:0.06em;text-transform:uppercase;">
+                    Order&nbsp;&nbsp;<span style="font-family:'SFMono-Regular',Menlo,Monaco,Consolas,monospace;color:#2f2a25;letter-spacing:0.02em;text-transform:none;">#{{order_number}}</span>
+                  </td>
+                </tr>
+              </table>
+
+              <!-- Items -->
+              <h2 style="margin:0 0 12px 0;font-size:13px;letter-spacing:0.08em;text-transform:uppercase;color:#8a7d6e;font-weight:600;">
+                Your order
+              </h2>
+              <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="margin-bottom:20px;">
+                {{{items_html}}}
+              </table>
+
+              <!-- Totals -->
+              <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="margin-bottom:32px;">
+                <tr>
+                  <td style="padding:6px 0;font-size:14px;color:#5c544c;">Subtotal</td>
+                  <td style="padding:6px 0;font-size:14px;color:#2f2a25;text-align:right;font-variant-numeric:tabular-nums;">{{subtotal}}</td>
+                </tr>
+                <tr>
+                  <td style="padding:6px 0;font-size:14px;color:#5c544c;">Discount <span style="color:#8a7d6e;">({{promo_code}})</span></td>
+                  <td style="padding:6px 0;font-size:14px;color:#1c6b34;text-align:right;font-variant-numeric:tabular-nums;">{{discount}}</td>
+                </tr>
+                <tr>
+                  <td style="padding:6px 0;font-size:14px;color:#5c544c;">Shipping</td>
+                  <td style="padding:6px 0;font-size:14px;color:#2f2a25;text-align:right;font-variant-numeric:tabular-nums;">{{shipping}}</td>
+                </tr>
+                <tr>
+                  <td style="padding:14px 0 6px 0;border-top:2px solid #eee3d2;font-size:16px;color:#2f2a25;font-weight:600;">Total</td>
+                  <td style="padding:14px 0 6px 0;border-top:2px solid #eee3d2;font-size:18px;color:#2f2a25;text-align:right;font-weight:600;font-variant-numeric:tabular-nums;">{{total}}</td>
+                </tr>
+              </table>
+
+              <!-- Payment CTA -->
+              <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="background:#f5f1e9;border-radius:10px;margin-bottom:28px;">
+                <tr>
+                  <td style="padding:24px;">
+                    <h2 style="margin:0 0 8px 0;font-size:14px;letter-spacing:0.08em;text-transform:uppercase;color:#6b5f52;font-weight:600;">
+                      Next step — send payment
+                    </h2>
+                    <p style="margin:0 0 16px 0;font-size:15px;line-height:1.6;color:#2f2a25;">
+                      Open Venmo and send <strong>{{total}}</strong> to <strong>@{{venmo_username}}</strong>.<br>
+                      <span style="color:#5c544c;font-size:14px;">Include this note so we can match it to your order:</span>
+                    </p>
+                    <table role="presentation" cellpadding="0" cellspacing="0" border="0" style="margin-bottom:20px;">
+                      <tr>
+                        <td style="background:#ffffff;border:1px solid #eee3d2;padding:10px 14px;border-radius:6px;font-family:'SFMono-Regular',Menlo,Monaco,Consolas,monospace;font-size:15px;color:#2f2a25;">
+                          {{order_number}}
+                        </td>
+                      </tr>
+                    </table>
+                    <table role="presentation" cellpadding="0" cellspacing="0" border="0">
+                      <tr>
+                        <td style="border-radius:8px;background:#6b5f52;">
+                          <a href="{{venmo_link}}" style="display:inline-block;padding:12px 24px;font-size:15px;color:#ffffff;text-decoration:none;font-weight:600;border-radius:8px;">
+                            Open in Venmo →
+                          </a>
+                        </td>
+                      </tr>
+                    </table>
+                  </td>
+                </tr>
+              </table>
+
+              <!-- Fulfillment -->
+              <p style="margin:0 0 16px 0;font-size:14px;line-height:1.6;color:#5c544c;">
+                {{fulfillment}}
+              </p>
+              <p style="margin:0;font-size:14px;line-height:1.6;color:#5c544c;">
+                {{thank_you_message}}
+              </p>
+
+            </td>
+          </tr>
+
+          <!-- Footer -->
+          <tr>
+            <td align="center" style="padding:24px 16px 8px 16px;font-size:12px;color:#8a7d6e;line-height:1.6;">
+              <a href="{{site_url}}" style="color:#6b5f52;text-decoration:none;">{{site_url}}</a><br>
+              Questions? Just reply to this email.
+            </td>
+          </tr>
+
+        </table>
+      </td>
+    </tr>
+  </table>
+</body>
+</html>

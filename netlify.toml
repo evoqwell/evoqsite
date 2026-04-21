@@ -15,6 +15,12 @@
   status = 301
   force = true
 
+# Admin SPA: rewrite /admin/* to /admin.html so BrowserRouter handles subpaths
+[[redirects]]
+  from = "/admin/*"
+  to = "/admin.html"
+  status = 200
+
 # Redirect rules - only redirect when file not found
 # This allows HTML pages and static assets to be served normally
 [[redirects]]

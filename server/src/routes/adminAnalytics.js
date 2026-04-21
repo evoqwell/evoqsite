@@ -7,6 +7,9 @@ const router = Router();
 
 router.use(requireAdmin);
 
+const ANALYTICS_CACHE_TTL_MS = 60_000;
+const analyticsCache = new Map();
+
 const rangeSchema = z.object({
   range: z.enum(['daily', 'week', 'month', '3months', 'all']).optional().default('daily')
 });
@@ -96,61 +99,6 @@ function formatTimeSeriesLabel(item, range) {
   }
 }
 
-function generateEmptyTimeSeries(range, startDate, endDate) {
-  const series = [];
-  const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
-
-  switch (range) {
-    case 'daily': {
-      for (let h = 0; h < 24; h++) {
-        const ampm = h >= 12 ? 'pm' : 'am';
-        const hour12 = h === 0 ? 12 : h > 12 ? h - 12 : h;
-        series.push({ label: `${hour12}${ampm}`, pageViews: 0, uniqueVisitors: 0, sortKey: h });
-      }
-      break;
-    }
-    case 'week':
-    case 'month': {
-      const current = new Date(startDate);
-      while (current <= endDate) {
-        const month = months[current.getMonth()];
-        const day = current.getDate();
-        series.push({
-          label: `${month} ${day}`,
-          pageViews: 0,
-          uniqueVisitors: 0,
-          sortKey: current.getTime()
-        });
-        current.setDate(current.getDate() + 1);
-      }
-      break;
-    }
-    case '3months': {
-      const current = new Date(startDate);
-      while (current <= endDate) {
-        const weekNum = getWeekNumber(current);
-        const existing = series.find(s => s.label === `Week ${weekNum}`);
-        if (!existing) {
-          series.push({
-            label: `Week ${weekNum}`,
-            pageViews: 0,
-            uniqueVisitors: 0,
-            sortKey: current.getTime()
-          });
-        }
-        current.setDate(current.getDate() + 7);
-      }
-      break;
-    }
-    case 'all': {
-      // For 'all', we don't pre-generate - just use what's in the data
-      break;
-    }
-  }
-
-  return series;
-}
-
 function getWeekNumber(date) {
   const d = new Date(Date.UTC(date.getFullYear(), date.getMonth(), date.getDate()));
   const dayNum = d.getUTCDay() || 7;
@@ -175,9 +123,31 @@ function getSortKey(id, range) {
   }
 }
 
+function getCachedAnalytics(range) {
+  const entry = analyticsCache.get(range);
+  if (!entry) return null;
+  if (Date.now() >= entry.expiresAt) {
+    analyticsCache.delete(range);
+    return null;
+  }
+  return entry.payload;
+}
+
+function setCachedAnalytics(range, payload) {
+  analyticsCache.set(range, {
+    payload,
+    expiresAt: Date.now() + ANALYTICS_CACHE_TTL_MS,
+  });
+}
+
 router.get('/', async (req, res, next) => {
   try {
     const { range } = rangeSchema.parse(req.query);
+    const cached = getCachedAnalytics(range);
+    if (cached) {
+      return res.json(cached);
+    }
+
     const { startDate, endDate } = getDateRange(range);
 
     const matchStage = {
@@ -185,85 +155,77 @@ router.get('/', async (req, res, next) => {
     };
 
     const tsConfig = getTimeSeriesConfig(range);
+    const dailyVisitorKey = {
+      $concat: [
+        '$ipAddress',
+        '-',
+        { $dateToString: { format: '%Y-%m-%d', date: '$createdAt' } }
+      ]
+    };
 
-    const [totals, byPage, timeSeriesRaw] = await Promise.all([
-      // Overall totals
-      PageView.aggregate([
-        { $match: matchStage },
-        {
-          $group: {
-            _id: null,
-            totalPageViews: { $sum: 1 },
-            uniqueVisitors: {
-              $addToSet: {
-                $concat: [
-                  '$ipAddress',
-                  '-',
-                  { $dateToString: { format: '%Y-%m-%d', date: '$createdAt' } }
-                ]
+    const [result = {}] = await PageView.aggregate([
+      { $match: matchStage },
+      {
+        $facet: {
+          totals: [
+            {
+              $group: {
+                _id: null,
+                totalPageViews: { $sum: 1 },
+                uniqueVisitors: { $addToSet: dailyVisitorKey }
+              }
+            },
+            {
+              $project: {
+                _id: 0,
+                totalPageViews: 1,
+                uniqueVisitors: { $size: '$uniqueVisitors' }
               }
             }
-          }
-        },
-        {
-          $project: {
-            _id: 0,
-            totalPageViews: 1,
-            uniqueVisitors: { $size: '$uniqueVisitors' }
-          }
-        }
-      ]),
-
-      // Breakdown by page
-      PageView.aggregate([
-        { $match: matchStage },
-        {
-          $group: {
-            _id: '$page',
-            pageViews: { $sum: 1 },
-            uniqueVisitors: {
-              $addToSet: {
-                $concat: [
-                  '$ipAddress',
-                  '-',
-                  { $dateToString: { format: '%Y-%m-%d', date: '$createdAt' } }
-                ]
+          ],
+          byPage: [
+            {
+              $group: {
+                _id: '$page',
+                pageViews: { $sum: 1 },
+                uniqueVisitors: { $addToSet: dailyVisitorKey }
+              }
+            },
+            {
+              $project: {
+                page: '$_id',
+                _id: 0,
+                pageViews: 1,
+                uniqueVisitors: { $size: '$uniqueVisitors' }
               }
             }
-          }
-        },
-        {
-          $project: {
-            page: '$_id',
-            _id: 0,
-            pageViews: 1,
-            uniqueVisitors: { $size: '$uniqueVisitors' }
-          }
+          ],
+          timeSeriesRaw: [
+            {
+              $group: {
+                _id: { ...tsConfig.groupBy, page: '$page' },
+                pageViews: { $sum: 1 },
+                uniqueIps: { $addToSet: '$ipAddress' }
+              }
+            },
+            {
+              $project: {
+                _id: 1,
+                pageViews: 1,
+                uniqueVisitors: { $size: '$uniqueIps' }
+              }
+            },
+            { $sort: { '_id.year': 1, '_id.month': 1, '_id.week': 1, '_id.day': 1, '_id.hour': 1 } }
+          ]
         }
-      ]),
+      }
+    ]).allowDiskUse(true);
 
-      // Time series data by page
-      PageView.aggregate([
-        { $match: matchStage },
-        {
-          $group: {
-            _id: { ...tsConfig.groupBy, page: '$page' },
-            pageViews: { $sum: 1 },
-            uniqueIps: { $addToSet: '$ipAddress' }
-          }
-        },
-        {
-          $project: {
-            _id: 1,
-            pageViews: 1,
-            uniqueVisitors: { $size: '$uniqueIps' }
-          }
-        },
-        { $sort: { '_id.year': 1, '_id.month': 1, '_id.week': 1, '_id.day': 1, '_id.hour': 1 } }
-      ])
-    ]);
+    const totals = result.totals ?? [];
+    const byPage = result.byPage ?? [];
+    const timeSeriesRaw = result.timeSeriesRaw ?? [];
 
-    const result = totals[0] || { totalPageViews: 0, uniqueVisitors: 0 };
+    const totalsRow = totals[0] || { totalPageViews: 0, uniqueVisitors: 0 };
 
     // Build time series from actual data, separated by page
     const homepageData = [];
@@ -294,12 +256,12 @@ router.get('/', async (req, res, next) => {
       products: productsData.map(({ label, pageViews, uniqueVisitors }) => ({ label, pageViews, uniqueVisitors }))
     };
 
-    res.json({
+    const payload = {
       range,
       startDate: startDate.toISOString(),
       endDate: endDate.toISOString(),
-      totalPageViews: result.totalPageViews,
-      uniqueVisitors: result.uniqueVisitors,
+      totalPageViews: totalsRow.totalPageViews,
+      uniqueVisitors: totalsRow.uniqueVisitors,
       byPage: byPage.reduce((acc, item) => {
         acc[item.page] = {
           pageViews: item.pageViews,
@@ -308,7 +270,10 @@ router.get('/', async (req, res, next) => {
         return acc;
       }, {}),
       timeSeries
-    });
+    };
+
+    setCachedAnalytics(range, payload);
+    res.json(payload);
   } catch (error) {
     next(error);
   }

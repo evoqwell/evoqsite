@@ -21,6 +21,9 @@ dist-ssr
 *.sln
 *.sw?
 .claude
+MIGRATION_PLAN.md
+.playwright-mcp/
+nul
 
 # Environment files - NEVER commit secrets
 .env

@@ -102,7 +102,7 @@ export function validateCartIntegrity(cartItems, products) {
     }
 
     // Ensure the product is active
-    if (!product.isActive) {
+    if (product.status !== 'active') {
       return false;
     }
 

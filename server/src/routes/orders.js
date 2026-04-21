@@ -32,7 +32,7 @@ router.post('/', orderLimiter, ipReputationMiddleware, emailRateLimitMiddleware,
     }
 
     const uniqueProductIds = [...quantityBySku.keys()];
-    const products = await Product.find({ sku: { $in: uniqueProductIds }, isActive: true }).lean();
+    const products = await Product.find({ sku: { $in: uniqueProductIds }, status: 'active' }).lean();
 
     if (products.length !== uniqueProductIds.length) {
       return res.status(400).json({ error: 'One or more products are unavailable.' });

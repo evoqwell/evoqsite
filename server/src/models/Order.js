@@ -66,6 +66,11 @@ const orderSchema = new mongoose.Schema(
   }
 );
 
+// Admin orders list sorts by createdAt desc and filters by status.
+// A compound index covers both the sort and the filter in one scan.
+orderSchema.index({ status: 1, createdAt: -1 });
+orderSchema.index({ createdAt: -1 });
+
 orderSchema.set('toJSON', {
   virtuals: true,
   versionKey: false,
