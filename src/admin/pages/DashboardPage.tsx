@@ -51,7 +51,7 @@ export function DashboardPage() {
 
   const analyticsData = analytics.data as AnalyticsData | undefined;
 
-  const revenueCents = dashboard.data?.revenueCents ?? 0;
+  const grossProfitCents = dashboard.data?.grossProfitCents ?? 0;
   const orderCount = dashboard.data?.orderCount ?? 0;
   const uniqueVisitors = dashboard.data?.uniqueVisitors ?? 0;
   const conversion = uniqueVisitors > 0 ? (orderCount / uniqueVisitors) * 100 : 0;
@@ -93,7 +93,7 @@ export function DashboardPage() {
           </>
         ) : (
           <>
-            <KpiCard label="Revenue" value={formatCurrencyCents(revenueCents)} />
+            <KpiCard label="Gross profit" value={formatCurrencyCents(grossProfitCents)} />
             <KpiCard label="Orders" value={String(orderCount)} />
             <KpiCard label="Visitors" value={uniqueVisitors.toLocaleString()} />
             <KpiCard label="Conversion" value={`${conversion.toFixed(1)}%`} />

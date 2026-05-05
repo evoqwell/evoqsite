@@ -4,6 +4,7 @@ import { requireAdmin } from '../middleware/adminAuth.js';
 import { PageView } from '../models/PageView.js';
 import { Product } from '../models/Product.js';
 import { Order } from '../models/Order.js';
+import { Expense } from '../models/Expense.js';
 import { centsToDollars } from '../utils/money.js';
 import { decryptCustomerData } from '../utils/encryption.js';
 
@@ -51,7 +52,7 @@ router.get('/', async (req, res, next) => {
 
     const pendingStatuses = ['pending_payment', 'paid'];
 
-    const [summaryRows, countRows, pendingOrders, lowStock, trafficRows] =
+    const [summaryRows, expenseRows, countRows, pendingOrders, lowStock, trafficRows] =
       await Promise.all([
         Order.aggregate([
           {
@@ -65,6 +66,19 @@ router.get('/', async (req, res, next) => {
               _id: null,
               revenueCents: { $sum: '$totals.totalCents' },
               orderCount: { $sum: 1 },
+            },
+          },
+        ]),
+        Expense.aggregate([
+          {
+            $match: {
+              date: { $gte: startDate, $lte: endDate },
+            },
+          },
+          {
+            $group: {
+              _id: null,
+              expenseCents: { $sum: '$amountCents' },
             },
           },
         ]),
@@ -144,6 +158,8 @@ router.get('/', async (req, res, next) => {
       ]);
 
     const summary = summaryRows[0] ?? { revenueCents: 0, orderCount: 0 };
+    const expenseTotalsCents = expenseRows[0]?.expenseCents ?? 0;
+    const grossProfitCents = (summary.revenueCents ?? 0) - expenseTotalsCents;
     const traffic = trafficRows[0] ?? { totalPageViews: 0, uniqueVisitors: 0 };
 
     const counts = {
@@ -163,6 +179,8 @@ router.get('/', async (req, res, next) => {
       startDate: startDate.toISOString(),
       endDate: endDate.toISOString(),
       revenue: centsToDollars(summary.revenueCents),
+      expenses: centsToDollars(expenseTotalsCents),
+      grossProfit: centsToDollars(grossProfitCents),
       orderCount: summary.orderCount,
       totalPageViews: traffic.totalPageViews,
       uniqueVisitors: traffic.uniqueVisitors,

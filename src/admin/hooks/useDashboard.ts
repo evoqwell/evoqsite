@@ -24,6 +24,10 @@ export type DashboardSummary = {
   endDate: string;
   revenue: number;
   revenueCents: number;
+  expenses: number;
+  expensesCents: number;
+  grossProfit: number;
+  grossProfitCents: number;
   orderCount: number;
   totalPageViews: number;
   uniqueVisitors: number;
@@ -51,6 +55,8 @@ type RawDashboardSummary = {
   startDate?: string;
   endDate?: string;
   revenue?: number;
+  expenses?: number;
+  grossProfit?: number;
   orderCount?: number;
   totalPageViews?: number;
   uniqueVisitors?: number;
@@ -108,12 +114,18 @@ export function useDashboard(options: DashboardSummaryOptions) {
     select: (data: unknown): DashboardSummary => {
       const raw = (data ?? {}) as RawDashboardSummary;
       const revenue = raw.revenue ?? 0;
+      const expenses = raw.expenses ?? 0;
+      const grossProfit = raw.grossProfit ?? revenue - expenses;
       return {
         range: raw.range ?? normalized.range,
         startDate: raw.startDate ?? '',
         endDate: raw.endDate ?? '',
         revenue,
         revenueCents: Math.round(revenue * 100),
+        expenses,
+        expensesCents: Math.round(expenses * 100),
+        grossProfit,
+        grossProfitCents: Math.round(grossProfit * 100),
         orderCount: raw.orderCount ?? 0,
         totalPageViews: raw.totalPageViews ?? 0,
         uniqueVisitors: raw.uniqueVisitors ?? 0,
