@@ -45,3 +45,14 @@ export function fetchAdminDashboardSummary(
   token: string | null,
   params?: { range?: string; lowStockThreshold?: number; pendingLimit?: number },
 ): Promise<unknown>;
+
+export function fetchAdminExpenses(
+  token: string | null,
+  params?: { period?: 'month' | 'year' | 'all'; from?: string; to?: string; limit?: number },
+): Promise<unknown>;
+export function fetchAdminExpenseSummary(token: string | null): Promise<unknown>;
+export function createAdminExpense(
+  token: string | null,
+  payload: { description: string; amount: number; date: string },
+): Promise<unknown>;
+export function deleteAdminExpense(token: string | null, id: string): Promise<unknown>;

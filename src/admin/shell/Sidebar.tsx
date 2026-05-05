@@ -1,5 +1,5 @@
 import { NavLink, useNavigate } from 'react-router-dom';
-import { LayoutDashboard, ShoppingBag, Package, Tag, BarChart3, LogOut } from 'lucide-react';
+import { LayoutDashboard, ShoppingBag, Package, Tag, BarChart3, Receipt, LogOut } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -11,6 +11,7 @@ const NAV = [
   { to: '/admin/orders', label: 'Orders', icon: ShoppingBag },
   { to: '/admin/products', label: 'Products', icon: Package },
   { to: '/admin/promos', label: 'Promos', icon: Tag },
+  { to: '/admin/expenses', label: 'Expenses', icon: Receipt },
   { to: '/admin/analytics', label: 'Analytics', icon: BarChart3 },
 ];
 

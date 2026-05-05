@@ -7,6 +7,7 @@ import { PromosPage } from './pages/PromosPage';
 import { OrdersPage } from './pages/OrdersPage';
 import { OrderDetailPage } from './pages/OrderDetailPage';
 import { AnalyticsPage } from './pages/AnalyticsPage';
+import { ExpensesPage } from './pages/ExpensesPage';
 
 export function App() {
   return (
@@ -20,6 +21,7 @@ export function App() {
         <Route path="/admin/orders" element={<OrdersPage />} />
         <Route path="/admin/orders/:id" element={<OrderDetailPage />} />
         <Route path="/admin/analytics" element={<AnalyticsPage />} />
+        <Route path="/admin/expenses" element={<ExpensesPage />} />
       </Route>
       <Route path="*" element={<Navigate to="/admin" replace />} />
     </Routes>
