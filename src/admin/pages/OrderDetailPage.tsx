@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
-import { ArrowLeft } from 'lucide-react';
+import { ArrowLeft, Printer } from 'lucide-react';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -28,6 +28,7 @@ import {
   useUpdateOrderStatus,
 } from '../hooks/useOrders';
 import { formatCurrencyCents, formatDateTime } from '../lib/fmt';
+import { printPackingSlip } from '../lib/printPackingSlip';
 import type { OrderStatus } from '../types';
 
 const STATUS_OPTIONS: OrderStatus[] = [
@@ -144,6 +145,18 @@ export function OrderDetailPage() {
                 ))}
               </SelectContent>
             </Select>
+            <Button
+              variant="outline"
+              onClick={() => {
+                const opened = printPackingSlip(order);
+                if (!opened) {
+                  toast.error('Unable to open print window. Please allow popups.');
+                }
+              }}
+            >
+              <Printer className="h-4 w-4 mr-2" />
+              Print slip
+            </Button>
             <Button
               variant="destructive"
               onClick={() => setDeleteOpen(true)}
