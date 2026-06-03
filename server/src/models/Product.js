@@ -68,6 +68,10 @@ const productSchema = new mongoose.Schema(
   }
 );
 
+// Covers the dashboard low-stock query: find active products under a stock
+// threshold, sorted by stock. Without this it falls back to a collection scan.
+productSchema.index({ status: 1, stock: 1 });
+
 productSchema.set('toJSON', {
   virtuals: true,
   versionKey: false,

@@ -12,6 +12,29 @@ const router = Router();
 
 router.use(requireAdmin);
 
+// Cache computed dashboard payloads briefly. The dashboard runs 6 aggregations
+// per request (including a PageView scan); a short TTL collapses repeated/polled
+// loads into a single DB round-trip. Mirrors the cache in adminAnalytics.js.
+const DASHBOARD_CACHE_TTL_MS = 60_000;
+const dashboardCache = new Map();
+
+function getCachedDashboard(key) {
+  const entry = dashboardCache.get(key);
+  if (!entry) return null;
+  if (Date.now() >= entry.expiresAt) {
+    dashboardCache.delete(key);
+    return null;
+  }
+  return entry.payload;
+}
+
+function setCachedDashboard(key, payload) {
+  dashboardCache.set(key, {
+    payload,
+    expiresAt: Date.now() + DASHBOARD_CACHE_TTL_MS,
+  });
+}
+
 const querySchema = z.object({
   range: z.enum(['daily', 'week', 'month', '3months', 'all']).optional().default('week'),
   lowStockThreshold: z.coerce.number().int().min(1).max(100).optional().default(5),
@@ -48,6 +71,13 @@ function getDateRange(range) {
 router.get('/', async (req, res, next) => {
   try {
     const { range, lowStockThreshold, pendingLimit } = querySchema.parse(req.query);
+
+    const cacheKey = `${range}:${lowStockThreshold}:${pendingLimit}`;
+    const cached = getCachedDashboard(cacheKey);
+    if (cached) {
+      return res.json(cached);
+    }
+
     const { startDate, endDate } = getDateRange(range);
 
     const pendingStatuses = ['pending_payment', 'paid'];
@@ -174,7 +204,7 @@ router.get('/', async (req, res, next) => {
       }
     }
 
-    res.json({
+    const payload = {
       range,
       startDate: startDate.toISOString(),
       endDate: endDate.toISOString(),
@@ -202,7 +232,10 @@ router.get('/', async (req, res, next) => {
         };
       }),
       lowStock,
-    });
+    };
+
+    setCachedDashboard(cacheKey, payload);
+    res.json(payload);
   } catch (error) {
     next(error);
   }

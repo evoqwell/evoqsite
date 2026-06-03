@@ -247,7 +247,7 @@ export function useOrderCounts() {
   return useQuery({
     queryKey: ['orders', 'counts'],
     queryFn: () => fetchAdminOrderCounts(null),
-    refetchInterval: 30_000,
+    refetchInterval: 60_000,
     select: (data: unknown): OrderCounts => {
       const raw = (data ?? {}) as Partial<OrderCounts>;
       return {

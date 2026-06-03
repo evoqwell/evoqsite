@@ -104,10 +104,20 @@ router.get('/', async (req, res, next) => {
   }
 });
 
+// The admin UI polls /counts on an interval, and each call is a full-collection
+// $group scan. Counts change slowly, so a short cache collapses repeated polls
+// into one DB round-trip without making the badge feel stale.
+const COUNTS_CACHE_TTL_MS = 30_000;
+let countsCache = null; // { payload, expiresAt }
+
 // IMPORTANT: /counts and /summary literals MUST come before /:orderNumber or
 // Express will match them as an orderNumber param.
 router.get('/counts', async (req, res, next) => {
   try {
+    if (countsCache && Date.now() < countsCache.expiresAt) {
+      return res.json(countsCache.payload);
+    }
+
     const rows = await Order.aggregate([
       { $group: { _id: '$status', count: { $sum: 1 } } },
     ]);
@@ -120,6 +130,8 @@ router.get('/counts', async (req, res, next) => {
     for (const row of rows) {
       if (row._id in counts) counts[row._id] = row.count;
     }
+
+    countsCache = { payload: counts, expiresAt: Date.now() + COUNTS_CACHE_TTL_MS };
     res.json(counts);
   } catch (error) {
     next(error);
@@ -212,6 +224,8 @@ router.patch('/:orderNumber/status', async (req, res, next) => {
       return res.status(404).json({ error: 'Order not found.' });
     }
 
+    countsCache = null; // status moved between buckets — force fresh counts
+
     res.json({
       orderNumber: order.orderNumber,
       status: order.status
@@ -228,6 +242,7 @@ router.delete('/:orderNumber', async (req, res, next) => {
     if (!result) {
       return res.status(404).json({ error: 'Order not found.' });
     }
+    countsCache = null; // order removed — force fresh counts
     res.status(204).end();
   } catch (error) {
     next(error);
