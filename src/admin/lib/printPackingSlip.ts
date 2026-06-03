@@ -31,6 +31,7 @@ export function printPackingSlip(order: Order): boolean {
     .join('');
 
   const customer = order.customer ?? {};
+  const shippingText = formatCurrencyCents(order.totals?.shippingCents);
   const totalText = formatCurrencyCents(order.totals?.totalCents);
 
   const packingSlipHtml = `
@@ -89,9 +90,15 @@ export function printPackingSlip(order: Order): boolean {
       color: #666;
     }
     .items-table th:last-child { text-align: right; }
-    .total-row {
+    .shipping-row {
       margin-top: 16px;
-      padding-top: 16px;
+      display: flex;
+      justify-content: space-between;
+      color: #666;
+    }
+    .total-row {
+      margin-top: 8px;
+      padding-top: 12px;
       border-top: 2px solid #333;
       font-size: 16px;
       font-weight: 600;
@@ -157,6 +164,10 @@ export function printPackingSlip(order: Order): boolean {
         ${itemsHtml}
       </tbody>
     </table>
+    <div class="shipping-row">
+      <span>Shipping</span>
+      <span>${shippingText}</span>
+    </div>
     <div class="total-row">
       <span>Order Total</span>
       <span>${totalText}</span>
