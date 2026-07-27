@@ -4542,7 +4542,11 @@ button:focus {
 
 .product-modal {
   max-width: 960px;
+  /* svh = small viewport: the height that stays visible with mobile browser
+     chrome showing. Plain vh resolves to the LARGE viewport on iOS Safari, which
+     pushes the last action (the COA link) under the bottom toolbar. */
   max-height: 90vh;
+  max-height: 90svh;
   overflow-y: auto;
 }
 
@@ -4560,21 +4564,61 @@ button:focus {
   border-radius: 50%;
   width: 40px;
   height: 40px;
-  font-size: 1.5rem;
+  padding: 0;
   cursor: pointer;
   display: flex;
   align-items: center;
   justify-content: center;
   color: var(--charcoal);
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.12);
-  transition: transform 0.3s ease, background-color 0.3s ease, color 0.3s ease;
+  transition: transform 0.3s var(--ease-out-expo),
+              background-color 0.3s var(--ease-out-expo),
+              color 0.3s var(--ease-out-expo);
   z-index: 2;
+  -webkit-tap-highlight-color: transparent;
+}
+
+/* Drawn as an SVG rather than a "times" glyph: the text character renders at
+   roughly a quarter of the button's size and sits low in its em box, so flex
+   centring (which centres the line box, not the ink) left it visibly off-centre. */
+.product-modal__close svg {
+  display: block; /* no inline baseline gap, so the icon centres exactly */
+  width: 22px;
+  height: 22px;
 }
 
 .product-modal__close:hover {
-  transform: rotate(90deg);
   background-color: var(--stone);
   color: var(--white);
+  transform: scale(1.06);
+}
+
+.product-modal__close:active {
+  transform: scale(0.96);
+}
+
+/* Keep the ring for keyboard users only: the modal focuses this button on open,
+   so an always-on :focus ring fired on every mouse open (and replaced the shadow). */
+.product-modal__close:focus-visible {
+  outline: 2px solid var(--stone);
+  outline-offset: 2px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.12); /* keep the lift; the outline is the ring */
+}
+
+.product-modal__close:focus:not(:focus-visible) {
+  outline: none;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.12);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .product-modal__close {
+    transition: background-color 0.3s ease, color 0.3s ease;
+  }
+
+  .product-modal__close:hover,
+  .product-modal__close:active {
+    transform: none;
+  }
 }
 
 .product-modal__content {
@@ -5000,6 +5044,13 @@ button:focus {
 
   .product-modal {
     max-height: calc(100vh - 2rem);
+    max-height: calc(100svh - 2rem);
+  }
+
+  /* 44px minimum touch target */
+  .product-modal__close {
+    width: 44px;
+    height: 44px;
   }
 
   .product-modal__image {
@@ -5068,6 +5119,7 @@ button:focus {
 
   .product-modal {
     max-height: calc(100vh - 1.5rem);
+    max-height: calc(100svh - 1.5rem);
   }
 
   .product-modal__content {
