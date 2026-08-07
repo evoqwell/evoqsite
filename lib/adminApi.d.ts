@@ -46,6 +46,12 @@ export function fetchAdminDashboardSummary(
   params?: { range?: string; lowStockThreshold?: number; pendingLimit?: number },
 ): Promise<unknown>;
 
+export function updateAdminOrderInvoiceSent(
+  token: string | null,
+  orderNumber: string,
+  sent: boolean,
+): Promise<unknown>;
+
 export function fetchAdminExpenses(
   token: string | null,
   params?: { period?: 'month' | 'year' | 'all'; from?: string; to?: string; limit?: number },
@@ -56,3 +62,25 @@ export function createAdminExpense(
   payload: { description: string; amount: number; date: string },
 ): Promise<unknown>;
 export function deleteAdminExpense(token: string | null, id: string): Promise<unknown>;
+
+export function fetchAdminDreaEntries(
+  token: string | null,
+  params?: {
+    period?: 'month' | 'year' | 'all';
+    type?: 'income' | 'expense';
+    from?: string;
+    to?: string;
+    limit?: number;
+  },
+): Promise<unknown>;
+export function fetchAdminDreaSummary(token: string | null): Promise<unknown>;
+export function createAdminDreaEntry(
+  token: string | null,
+  payload: {
+    type: 'income' | 'expense';
+    description: string;
+    amount: number;
+    date: string;
+  },
+): Promise<unknown>;
+export function deleteAdminDreaEntry(token: string | null, id: string): Promise<unknown>;

@@ -1,8 +1,7 @@
 import { Router } from 'express';
 import { z } from 'zod';
 import { requireAdmin } from '../middleware/adminAuth.js';
-import { Expense } from '../models/Expense.js';
-import { Order } from '../models/Order.js';
+import { DreaEntry } from '../models/DreaEntry.js';
 import { centsToDollars, dollarsToCents } from '../utils/money.js';
 import { parseDateOnly } from '../utils/dateOnly.js';
 
@@ -10,9 +9,10 @@ const router = Router();
 
 router.use(requireAdmin);
 
-const REVENUE_STATUSES = ['paid', 'fulfilled'];
+// This router never touches Order or Expense. Drea's books are hers alone.
 
 const createSchema = z.object({
+  type: z.enum(['income', 'expense']),
   description: z.string().trim().min(1).max(500),
   amount: z.number().nonnegative(),
   date: z
@@ -25,14 +25,16 @@ const createSchema = z.object({
 
 const listQuerySchema = z.object({
   period: z.enum(['month', 'year', 'all']).optional().default('all'),
+  type: z.enum(['income', 'expense']).optional(),
   from: z.string().optional(),
   to: z.string().optional(),
   limit: z.coerce.number().int().min(1).max(500).optional().default(200)
 });
 
-function serializeExpense(doc) {
+function serializeEntry(doc) {
   return {
     id: doc._id?.toString() ?? doc.id,
+    type: doc.type,
     description: doc.description,
     amount: centsToDollars(doc.amountCents),
     amountCents: doc.amountCents,
@@ -51,10 +53,12 @@ function startOfYear(now = new Date()) {
 
 router.get('/', async (req, res, next) => {
   try {
-    const { period, from, to, limit } = listQuerySchema.parse(req.query);
+    const { period, type, from, to, limit } = listQuerySchema.parse(req.query);
 
     const filter = {};
     const now = new Date();
+
+    if (type) filter.type = type;
 
     if (from || to) {
       filter.date = {};
@@ -66,14 +70,12 @@ router.get('/', async (req, res, next) => {
       filter.date = { $gte: startOfYear(now) };
     }
 
-    const expenses = await Expense.find(filter)
+    const entries = await DreaEntry.find(filter)
       .sort({ date: -1, createdAt: -1 })
       .limit(limit)
       .lean();
 
-    res.json({
-      expenses: expenses.map(serializeExpense)
-    });
+    res.json({ entries: entries.map(serializeEntry) });
   } catch (error) {
     next(error);
   }
@@ -82,15 +84,15 @@ router.get('/', async (req, res, next) => {
 router.post('/', async (req, res, next) => {
   try {
     const payload = createSchema.parse(req.body);
-    const amountCents = dollarsToCents(payload.amount);
 
-    const expense = await Expense.create({
+    const entry = await DreaEntry.create({
+      type: payload.type,
       description: payload.description,
-      amountCents,
+      amountCents: dollarsToCents(payload.amount),
       date: parseDateOnly(payload.date)
     });
 
-    res.status(201).json(serializeExpense(expense.toObject()));
+    res.status(201).json(serializeEntry(entry.toObject()));
   } catch (error) {
     next(error);
   }
@@ -98,9 +100,9 @@ router.post('/', async (req, res, next) => {
 
 router.delete('/:id', async (req, res, next) => {
   try {
-    const result = await Expense.findByIdAndDelete(req.params.id);
+    const result = await DreaEntry.findByIdAndDelete(req.params.id);
     if (!result) {
-      return res.status(404).json({ error: 'Expense not found.' });
+      return res.status(404).json({ error: 'Entry not found.' });
     }
     res.status(204).end();
   } catch (error) {
@@ -114,75 +116,44 @@ router.get('/summary', async (req, res, next) => {
     const monthStart = startOfMonth(now);
     const yearStart = startOfYear(now);
 
-    const [
-      monthExpenseRows,
-      yearExpenseRows,
-      allExpenseRows,
-      monthRevenueRows,
-      yearRevenueRows,
-      allRevenueRows
-    ] = await Promise.all([
-      Expense.aggregate([
+    // One aggregation per window, grouped by type, so income and expense come
+    // back in a single round trip each.
+    const [monthRows, yearRows, allRows] = await Promise.all([
+      DreaEntry.aggregate([
         { $match: { date: { $gte: monthStart } } },
-        { $group: { _id: null, total: { $sum: '$amountCents' }, count: { $sum: 1 } } }
+        { $group: { _id: '$type', total: { $sum: '$amountCents' }, count: { $sum: 1 } } }
       ]),
-      Expense.aggregate([
+      DreaEntry.aggregate([
         { $match: { date: { $gte: yearStart } } },
-        { $group: { _id: null, total: { $sum: '$amountCents' }, count: { $sum: 1 } } }
+        { $group: { _id: '$type', total: { $sum: '$amountCents' }, count: { $sum: 1 } } }
       ]),
-      Expense.aggregate([
-        { $group: { _id: null, total: { $sum: '$amountCents' }, count: { $sum: 1 } } }
-      ]),
-      Order.aggregate([
-        {
-          $match: {
-            status: { $in: REVENUE_STATUSES },
-            createdAt: { $gte: monthStart }
-          }
-        },
-        { $group: { _id: null, total: { $sum: '$totals.totalCents' }, count: { $sum: 1 } } }
-      ]),
-      Order.aggregate([
-        {
-          $match: {
-            status: { $in: REVENUE_STATUSES },
-            createdAt: { $gte: yearStart }
-          }
-        },
-        { $group: { _id: null, total: { $sum: '$totals.totalCents' }, count: { $sum: 1 } } }
-      ]),
-      Order.aggregate([
-        { $match: { status: { $in: REVENUE_STATUSES } } },
-        { $group: { _id: null, total: { $sum: '$totals.totalCents' }, count: { $sum: 1 } } }
+      DreaEntry.aggregate([
+        { $group: { _id: '$type', total: { $sum: '$amountCents' }, count: { $sum: 1 } } }
       ])
     ]);
 
-    function bucket(expenseRow, revenueRow) {
-      const expenseCents = expenseRow?.total ?? 0;
-      const revenueCents = revenueRow?.total ?? 0;
+    function bucket(rows) {
+      const income = rows.find((row) => row._id === 'income');
+      const expense = rows.find((row) => row._id === 'expense');
+      const incomeCents = income?.total ?? 0;
+      const expenseCents = expense?.total ?? 0;
       return {
+        incomeCents,
         expenseCents,
-        revenueCents,
-        grossProfitCents: revenueCents - expenseCents,
+        netCents: incomeCents - expenseCents,
+        income: centsToDollars(incomeCents),
         expense: centsToDollars(expenseCents),
-        revenue: centsToDollars(revenueCents),
-        grossProfit: centsToDollars(revenueCents - expenseCents),
-        expenseCount: expenseRow?.count ?? 0,
-        orderCount: revenueRow?.count ?? 0
+        net: centsToDollars(incomeCents - expenseCents),
+        incomeCount: income?.count ?? 0,
+        expenseCount: expense?.count ?? 0
       };
     }
 
     res.json({
       asOf: now.toISOString(),
-      month: {
-        startDate: monthStart.toISOString(),
-        ...bucket(monthExpenseRows[0], monthRevenueRows[0])
-      },
-      year: {
-        startDate: yearStart.toISOString(),
-        ...bucket(yearExpenseRows[0], yearRevenueRows[0])
-      },
-      all: bucket(allExpenseRows[0], allRevenueRows[0])
+      month: { startDate: monthStart.toISOString(), ...bucket(monthRows) },
+      year: { startDate: yearStart.toISOString(), ...bucket(yearRows) },
+      all: bucket(allRows)
     });
   } catch (error) {
     next(error);

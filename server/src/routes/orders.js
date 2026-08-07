@@ -96,11 +96,17 @@ router.post('/', orderLimiter, ipReputationMiddleware, emailRateLimitMiddleware,
 
     const orderNumber = generateOrderNumber();
     const venmoNote = orderNumber;
-    const venmoPayment = buildVenmoPaymentData({
-      username: config.venmoUsername,
-      amount: centsToDollars(totals.totalCents),
-      note: venmoNote
-    });
+    const paymentMethod = payload.paymentMethod ?? 'venmo';
+    // Card requests get invoiced manually, so no Venmo affordance is built or
+    // returned for them.
+    const venmoPayment =
+      paymentMethod === 'card'
+        ? null
+        : buildVenmoPaymentData({
+            username: config.venmoUsername,
+            amount: centsToDollars(totals.totalCents),
+            note: venmoNote
+          });
 
     const orderItems = cartItems.map((item) => ({
       sku: item.product.sku,
@@ -114,6 +120,7 @@ router.post('/', orderLimiter, ipReputationMiddleware, emailRateLimitMiddleware,
     const encryptedCustomer = encryptCustomerData({
       name: payload.customer.name,
       email: payload.customer.email,
+      ...(payload.customer.phone ? { phone: payload.customer.phone } : {}),
       address: payload.customer.address,
       city: payload.customer.city,
       state: payload.customer.state,
@@ -125,6 +132,7 @@ router.post('/', orderLimiter, ipReputationMiddleware, emailRateLimitMiddleware,
       promoCode: promos.length > 0 ? promos[0].code : null,
       promoCodes: promos.map(p => p.code),
       venmoNote,
+      paymentMethod,
       items: orderItems,
       totals: {
         subtotalCents: totals.subtotalCents,
@@ -143,14 +151,19 @@ router.post('/', orderLimiter, ipReputationMiddleware, emailRateLimitMiddleware,
 
     res.status(201).json({
       orderNumber,
-      venmoUrl: venmoPayment.webUrl,
-      venmoPayment: {
-        webUrl: venmoPayment.webUrl,
-        deepLink: venmoPayment.deepLink,
-        username: venmoPayment.username,
-        amount: venmoPayment.amount,
-        note: venmoPayment.note
-      },
+      paymentMethod,
+      ...(venmoPayment
+        ? {
+            venmoUrl: venmoPayment.webUrl,
+            venmoPayment: {
+              webUrl: venmoPayment.webUrl,
+              deepLink: venmoPayment.deepLink,
+              username: venmoPayment.username,
+              amount: venmoPayment.amount,
+              note: venmoPayment.note
+            }
+          }
+        : {}),
       promoCode: promos.length > 0 ? promos[0].code : null,
       promoCodes: promos.map(p => p.code),
       totals: totals.toJSON(),
@@ -164,6 +177,7 @@ router.post('/', orderLimiter, ipReputationMiddleware, emailRateLimitMiddleware,
       customer: {
         name: payload.customer.name,
         email: payload.customer.email,
+        phone: payload.customer.phone || null,
         address: payload.customer.address,
         city: payload.customer.city,
         state: payload.customer.state,

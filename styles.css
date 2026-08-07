@@ -1838,6 +1838,66 @@ textarea.form-control {
   }
 }
 
+/* Card-payment request — an opt-in for clients who can't use Venmo. Kept
+   visually quiet so it reads as an alternative, not a competing call to
+   action. */
+.card-payment-section {
+  background-color: var(--bone);
+  padding: 1rem 1.125rem;
+  border-radius: 4px;
+  border: 1px solid var(--sand);
+}
+
+.card-payment-check {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.75rem;
+}
+
+.card-payment-checkbox {
+  width: 1.15rem;
+  height: 1.15rem;
+  margin: 0.1rem 0 0;
+  flex-shrink: 0;
+  accent-color: var(--stone);
+  cursor: pointer;
+}
+
+.card-payment-check label {
+  margin: 0;
+  font-size: 0.95rem;
+  line-height: 1.5;
+  cursor: pointer;
+}
+
+/* Secondary prose, not a field label — opt out of the form's uppercase
+   label treatment so full sentences stay readable. */
+.card-payment-hint {
+  display: block;
+  margin-top: 0.25rem;
+  font-size: 0.82rem;
+  color: var(--stone);
+  line-height: 1.5;
+  text-transform: none;
+  letter-spacing: normal;
+  font-weight: 400;
+}
+
+.card-payment-phone {
+  margin-top: 1rem;
+  padding-top: 1rem;
+  border-top: 1px solid var(--sand);
+}
+
+.card-payment-phone[hidden] {
+  display: none;
+}
+
+.card-payment-phone label {
+  display: block;
+  margin-bottom: 0.35rem;
+}
+
 .compliance-note {
   background-color: var(--bone);
   padding: 1rem;

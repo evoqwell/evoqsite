@@ -25,6 +25,10 @@ const customerSchema = new mongoose.Schema(
   {
     name: { type: String, required: true },
     email: { type: String, required: true },
+    // Only collected when the customer asks to pay by card, so the owner has a
+    // number to text the invoice link to. Encrypted at rest like the rest of
+    // the customer PII.
+    phone: { type: String },
     address: { type: String, required: true },
     city: { type: String, required: true },
     state: { type: String, required: true },
@@ -48,6 +52,18 @@ const orderSchema = new mongoose.Schema(
     promoCode: { type: String },
     promoCodes: [{ type: String }],
     venmoNote: { type: String },
+    // How the customer intends to pay. `card` means they asked to be invoiced
+    // separately — the site never charges a card itself.
+    paymentMethod: {
+      type: String,
+      enum: ['venmo', 'card'],
+      default: 'venmo'
+    },
+    // When the owner sent the card customer their invoice link. Null means the
+    // customer is still waiting. Only meaningful for `paymentMethod: 'card'`;
+    // deliberately NOT a fifth `status` value, which would distort revenue
+    // math, the status filter tabs, and the pending-orders badge.
+    invoiceSentAt: { type: Date, default: null },
     items: {
       type: [orderItemSchema],
       validate: [(val) => Array.isArray(val) && val.length > 0, 'Order must have at least one item.']

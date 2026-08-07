@@ -15,6 +15,7 @@ export const NAV_ITEMS: CommandItem[] = [
   { id: 'nav-products', label: 'Go to Products', to: '/admin/products', group: 'Navigation' },
   { id: 'nav-promos', label: 'Go to Promos', to: '/admin/promos', group: 'Navigation' },
   { id: 'nav-expenses', label: 'Go to Expenses', to: '/admin/expenses', group: 'Navigation' },
+  { id: 'nav-drea', label: 'Go to Drea Hair', keywords: ['drea', 'hair', 'salon', 'stylist'], to: '/admin/drea', group: 'Navigation' },
   { id: 'nav-analytics', label: 'Go to Analytics', to: '/admin/analytics', group: 'Navigation' },
 ];
 

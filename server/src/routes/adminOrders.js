@@ -62,6 +62,8 @@ router.get('/', async (req, res, next) => {
             _id: 0,
             orderNumber: 1,
             status: 1,
+            paymentMethod: 1,
+            invoiceSentAt: 1,
             customer: {
               name: '$customer.name',
               email: '$customer.email',
@@ -81,6 +83,8 @@ router.get('/', async (req, res, next) => {
       orders: orders.map((order) => ({
         orderNumber: order.orderNumber,
         status: order.status,
+        paymentMethod: order.paymentMethod ?? 'venmo',
+        invoiceSentAt: order.invoiceSentAt?.toISOString?.() ?? order.invoiceSentAt ?? null,
         customer: (() => {
           const decrypted = decryptCustomerData(order.customer);
           return {
@@ -184,6 +188,8 @@ router.get('/:orderNumber', async (req, res, next) => {
       status: order.status,
       promoCode: order.promoCode || null,
       venmoNote: order.venmoNote,
+      paymentMethod: order.paymentMethod ?? 'venmo',
+      invoiceSentAt: order.invoiceSentAt?.toISOString?.() ?? order.invoiceSentAt ?? null,
       totals: {
         subtotal: centsToDollars(order.totals.subtotalCents),
         discount: centsToDollars(order.totals.discountCents),
@@ -229,6 +235,41 @@ router.patch('/:orderNumber/status', async (req, res, next) => {
     res.json({
       orderNumber: order.orderNumber,
       status: order.status
+    });
+  } catch (error) {
+    next(error);
+  }
+});
+
+const invoiceSentSchema = z.object({
+  sent: z.boolean()
+});
+
+// Mark (or un-mark) that the card customer has been sent their invoice link.
+router.patch('/:orderNumber/invoice-sent', async (req, res, next) => {
+  try {
+    const { sent } = invoiceSentSchema.parse(req.body);
+    const { orderNumber } = req.params;
+
+    const existing = await Order.findOne({ orderNumber }).lean();
+    if (!existing) {
+      return res.status(404).json({ error: 'Order not found.' });
+    }
+    if ((existing.paymentMethod ?? 'venmo') !== 'card') {
+      return res
+        .status(400)
+        .json({ error: 'Only card-payment orders have an invoice to send.' });
+    }
+
+    const order = await Order.findOneAndUpdate(
+      { orderNumber },
+      { $set: { invoiceSentAt: sent ? new Date() : null } },
+      { new: true }
+    ).lean();
+
+    res.json({
+      orderNumber: order.orderNumber,
+      invoiceSentAt: order.invoiceSentAt?.toISOString?.() ?? order.invoiceSentAt ?? null
     });
   } catch (error) {
     next(error);

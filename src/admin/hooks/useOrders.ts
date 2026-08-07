@@ -12,9 +12,10 @@ import {
   fetchAdminOrderCounts,
   fetchAdminOrdersList,
   fetchAdminOrderSummary,
+  updateAdminOrderInvoiceSent,
   updateAdminOrderStatus,
 } from '../../../lib/adminApi.js';
-import type { Order, OrderStatus } from '../types';
+import type { Order, OrderStatus, PaymentMethod } from '../types';
 import type { AnalyticsRange } from './useAnalytics';
 
 // ---------- Types ----------
@@ -28,6 +29,9 @@ export type OrdersListParams = {
 export type OrdersListItem = {
   orderNumber: string;
   status: OrderStatus;
+  paymentMethod: PaymentMethod;
+  /** ISO timestamp the card invoice link was sent, or null if still owed. */
+  invoiceSentAt: string | null;
   customer: { name: string | null; email: string | null };
   totals: { total: number; totalCents: number };
   itemsCount: number;
@@ -61,6 +65,8 @@ export type OrderSummary = {
 type RawListItem = {
   orderNumber: string;
   status: OrderStatus;
+  paymentMethod?: PaymentMethod;
+  invoiceSentAt?: string | null;
   customer?: { name?: string | null; email?: string | null } | null;
   totals?: { total?: number } | null;
   itemsCount?: number;
@@ -81,6 +87,8 @@ type RawOrderDetail = {
   createdAt: string;
   promoCode?: string | null;
   venmoNote?: string;
+  paymentMethod?: PaymentMethod;
+  invoiceSentAt?: string | null;
   customer?: Order['customer'];
   items?: Array<{
     sku: string;
@@ -122,6 +130,8 @@ function normalizeListItem(raw: RawListItem): OrdersListItem {
   return {
     orderNumber: raw.orderNumber,
     status: raw.status,
+    paymentMethod: raw.paymentMethod ?? 'venmo',
+    invoiceSentAt: raw.invoiceSentAt ?? null,
     customer: {
       name: raw.customer?.name ?? null,
       email: raw.customer?.email ?? null,
@@ -142,6 +152,8 @@ function normalizeOrderDetail(o: RawOrderDetail): Order {
     createdAt: o.createdAt,
     promoCode: o.promoCode,
     venmoNote: o.venmoNote,
+    paymentMethod: o.paymentMethod ?? 'venmo',
+    invoiceSentAt: o.invoiceSentAt ?? null,
     customer: o.customer,
     totals: {
       ...(o.totals ?? {}),
@@ -373,6 +385,19 @@ export function useUpdateOrderStatus() {
       qc.setQueryData(['orders', 'counts'], context.previousCounts);
     },
     onSettled: () => invalidateOrderQueries(qc),
+  });
+}
+
+/** Toggle whether the card customer has been sent their invoice link. */
+export function useMarkInvoiceSent() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ orderNumber, sent }: { orderNumber: string; sent: boolean }) =>
+      updateAdminOrderInvoiceSent(null, orderNumber, sent),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['orders', 'list'] });
+      qc.invalidateQueries({ queryKey: ['orders', 'detail'] });
+    },
   });
 }
 

@@ -166,6 +166,22 @@
                             </div>
                         </div>
 
+                        <div class="form-group card-payment-section">
+                            <div class="card-payment-check">
+                                <input type="checkbox" id="pay-by-card" name="payByCard" class="card-payment-checkbox">
+                                <label for="pay-by-card">
+                                    I'd like to pay by credit card instead of Venmo
+                                    <span class="card-payment-hint">We'll send you a secure invoice link by text.</span>
+                                </label>
+                            </div>
+                            <div class="card-payment-phone" id="card-phone-group" hidden>
+                                <label for="shipping-phone">Phone Number *</label>
+                                <input type="tel" id="shipping-phone" name="phone" class="form-control" autocomplete="tel" inputmode="tel" placeholder="(555) 123-4567" maxlength="20" aria-describedby="card-phone-help">
+                                <div class="invalid-feedback">Please enter a valid phone number.</div>
+                                <small id="card-phone-help" class="card-payment-hint">This is where your invoice link will be texted.</small>
+                            </div>
+                        </div>
+
                         <div class="form-group promo-code-section">
                             <label for="promo-code">Promo Codes (Optional)</label>
                             <div class="promo-code-input-group">
@@ -183,7 +199,7 @@
                         <button type="submit" class="btn-primary" id="submit-order">Place Order</button>
 
                         <div class="payment-note">
-                            <p>After submitting your order, you will receive payment instructions via email. We accept payment via Venmo.</p>
+                            <p>After submitting your order, you will receive payment instructions via email. We accept payment via Venmo, or a card invoice if you selected that option above.</p>
                             <p><strong>Heads up:</strong> If you do not receive a confirmation email, kindly check your junk or spam folder.</p>
                         </div>
                     </form>
@@ -207,6 +223,34 @@
                 </div>
                 <div class="modal-body" id="orderConfirmationContent" style="padding: 32px; background: #F5F1E9;">
                     <!-- Content will be inserted by JavaScript -->
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Card Payment Phone Confirmation Modal -->
+    <div class="modal fade" id="cardPhoneConfirmModal" tabindex="-1" aria-labelledby="cardPhoneConfirmModalLabel" aria-hidden="true" data-bs-backdrop="static" data-bs-keyboard="false">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content" style="border: none; border-radius: 16px; overflow: hidden; box-shadow: 0 20px 60px rgba(0,0,0,0.3);">
+                <div class="modal-header" style="background: linear-gradient(135deg, #8A7D6E 0%, #6B5F52 100%); color: #F5F1E9; border-bottom: none; padding: 24px 32px;">
+                    <div>
+                        <h4 class="modal-title mb-1" id="cardPhoneConfirmModalLabel" style="font-weight: 600; font-size: 1.5rem;">Confirm Your Phone Number</h4>
+                        <p style="margin: 0; opacity: 0.95; font-size: 0.95rem;">So your invoice reaches you</p>
+                    </div>
+                </div>
+                <div class="modal-body" style="padding: 32px; background: #F5F1E9; text-align: center;">
+                    <p style="margin: 0 0 20px 0; color: #444040; font-size: 0.95rem; line-height: 1.6;">
+                        We'll text a secure card payment link to:
+                    </p>
+                    <div id="card-phone-confirm-value" style="font-size: 1.5rem; font-weight: 700; color: #333333; letter-spacing: 0.5px; margin-bottom: 20px;"></div>
+                    <p style="margin: 0 0 24px 0; color: #6B5F52; font-size: 0.88rem; line-height: 1.6;">
+                        Is that correct? A wrong number means no invoice.
+                    </p>
+                    <!-- Widths are pinned inline because .btn-secondary is width:100% site-wide. -->
+                    <div style="display: flex; gap: 12px; justify-content: center; flex-wrap: wrap;">
+                        <button type="button" id="card-phone-edit" class="btn-secondary" style="flex: 1 1 0; width: auto; min-width: 130px; max-width: 200px; margin: 0; padding-left: 1rem; padding-right: 1rem; white-space: nowrap;">Let me fix it</button>
+                        <button type="button" id="card-phone-confirm" class="btn-primary" style="flex: 1 1 0; width: auto; min-width: 130px; max-width: 200px; margin: 0; padding-left: 1rem; padding-right: 1rem; white-space: nowrap;">Yes, that's correct</button>
+                    </div>
                 </div>
             </div>
         </div>

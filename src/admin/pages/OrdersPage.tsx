@@ -132,7 +132,25 @@ export function OrdersPage() {
         sortable: true,
         sortValue: (o) => o.orderNumber,
         cell: (o) => (
-          <span className="font-mono text-sm">#{o.orderNumber}</span>
+          <div className="space-y-1">
+            <div className="font-mono text-sm">#{o.orderNumber}</div>
+            {o.paymentMethod === 'card' &&
+              (o.invoiceSentAt ? (
+                <span
+                  className="inline-block rounded bg-slate-100 px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wider text-slate-600"
+                  title="Invoice link sent — waiting on payment"
+                >
+                  Card · Sent
+                </span>
+              ) : (
+                <span
+                  className="inline-block rounded bg-amber-100 px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wider text-amber-800"
+                  title="Card requested — this customer still needs an invoice link"
+                >
+                  Card · Owed
+                </span>
+              ))}
+          </div>
         ),
         className: 'w-28',
       },

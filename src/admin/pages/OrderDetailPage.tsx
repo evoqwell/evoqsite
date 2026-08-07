@@ -24,12 +24,25 @@ import { ConfirmDialog } from '../components/ConfirmDialog';
 import { StatusChip, STATUS_LABELS } from '../components/StatusChip';
 import {
   useDeleteOrder,
+  useMarkInvoiceSent,
   useOrder,
   useUpdateOrderStatus,
 } from '../hooks/useOrders';
 import { formatCurrencyCents, formatDateTime } from '../lib/fmt';
 import { printPackingSlip } from '../lib/printPackingSlip';
 import type { OrderStatus } from '../types';
+
+/** Render stored digits as (555) 123-4567; pass anything else through. */
+function formatPhone(value: string): string {
+  const digits = value.replace(/\D/g, '');
+  if (digits.length === 10) {
+    return `(${digits.slice(0, 3)}) ${digits.slice(3, 6)}-${digits.slice(6)}`;
+  }
+  if (digits.length === 11 && digits.startsWith('1')) {
+    return `(${digits.slice(1, 4)}) ${digits.slice(4, 7)}-${digits.slice(7)}`;
+  }
+  return value;
+}
 
 const STATUS_OPTIONS: OrderStatus[] = [
   'pending_payment',
@@ -46,6 +59,7 @@ export function OrderDetailPage() {
   const { data: order, isLoading, error } = useOrder(id);
   const updateStatus = useUpdateOrderStatus();
   const deleteOrder = useDeleteOrder();
+  const markInvoiceSent = useMarkInvoiceSent();
   const [deleteOpen, setDeleteOpen] = useState(false);
 
   if (isLoading) {
@@ -94,6 +108,20 @@ export function OrderDetailPage() {
     }
   }
 
+  async function handleToggleInvoiceSent() {
+    if (!order) return;
+    const next = !order.invoiceSentAt;
+    try {
+      await markInvoiceSent.mutateAsync({
+        orderNumber: order.orderNumber,
+        sent: next,
+      });
+      toast.success(next ? 'Marked invoice sent' : 'Marked not sent yet');
+    } catch (e) {
+      toast.error((e as Error).message);
+    }
+  }
+
   async function handleDelete() {
     if (!order) return;
     try {
@@ -105,9 +133,19 @@ export function OrderDetailPage() {
     }
   }
 
-  const { customer, totals, items, promoCode, venmoNote, status, createdAt } =
-    order;
+  const {
+    customer,
+    totals,
+    items,
+    promoCode,
+    venmoNote,
+    status,
+    createdAt,
+    paymentMethod,
+    invoiceSentAt,
+  } = order;
   const discountCents = totals?.discountCents ?? 0;
+  const isCardOrder = paymentMethod === 'card';
 
   return (
     <div className="p-6 space-y-6 max-w-[1400px] mx-auto">
@@ -292,20 +330,68 @@ export function OrderDetailPage() {
             </CardContent>
           </Card>
 
-          <Card>
+          <Card className={isCardOrder ? 'border-amber-300' : undefined}>
             <CardHeader className="pb-3">
               <CardTitle className="text-base">Payment</CardTitle>
             </CardHeader>
-            <CardContent className="text-sm">
-              {venmoNote ? (
+            <CardContent className="text-sm space-y-3">
+              {isCardOrder ? (
+                <>
+                  {invoiceSentAt ? (
+                    <div className="rounded-md bg-slate-50 border border-slate-200 p-3 space-y-1">
+                      <div className="font-medium text-slate-800">
+                        Invoice link sent
+                      </div>
+                      <p className="text-slate-600 text-xs leading-relaxed">
+                        Sent {formatDateTime(invoiceSentAt)}. Waiting on payment
+                        — mark the order paid once it clears.
+                      </p>
+                    </div>
+                  ) : (
+                    <div className="rounded-md bg-amber-50 border border-amber-200 p-3 space-y-1">
+                      <div className="font-medium text-amber-900">
+                        Card payment requested
+                      </div>
+                      <p className="text-amber-800 text-xs leading-relaxed">
+                        This customer can't use Venmo. Send them an invoice link —
+                        they're expecting a text.
+                      </p>
+                    </div>
+                  )}
+                  <div>
+                    <div className="text-xs uppercase tracking-wider text-muted-foreground mb-1">
+                      Phone (confirmed at checkout)
+                    </div>
+                    {customer?.phone ? (
+                      <a
+                        href={`tel:${customer.phone}`}
+                        className="text-brand-brown hover:underline font-medium tabular-nums"
+                      >
+                        {formatPhone(customer.phone)}
+                      </a>
+                    ) : (
+                      <div className="text-muted-foreground">
+                        No number on file
+                      </div>
+                    )}
+                  </div>
+                  <Button
+                    variant={invoiceSentAt ? 'outline' : 'default'}
+                    size="sm"
+                    className="w-full"
+                    disabled={markInvoiceSent.isPending}
+                    onClick={handleToggleInvoiceSent}
+                  >
+                    {invoiceSentAt ? 'Undo — not sent yet' : 'Mark invoice sent'}
+                  </Button>
+                </>
+              ) : (
                 <div>
                   <div className="text-xs uppercase tracking-wider text-muted-foreground mb-1">
                     Venmo note
                   </div>
-                  <div className="font-mono">{venmoNote}</div>
+                  <div className="font-mono">{venmoNote || '—'}</div>
                 </div>
-              ) : (
-                <div className="text-muted-foreground">—</div>
               )}
             </CardContent>
           </Card>

@@ -26,6 +26,16 @@ const customerSchema = z.object({
     .max(254, 'Email too long')
     .refine(val => !val.includes('..'), 'Invalid email format'),
 
+  // Optional for Venmo orders; required below when paymentMethod is 'card'.
+  // Stored digits-only so the admin UI can format it consistently.
+  phone: z.string()
+    .max(25, 'Phone number too long')
+    .transform(val => val.replace(/\D/g, ''))
+    .refine(val => val.length === 0 || (val.length >= 10 && val.length <= 15), {
+      message: 'Enter a valid phone number.'
+    })
+    .optional(),
+
   address: z.string()
     .min(5, 'Address too short')
     .max(200, 'Address too long')
@@ -68,7 +78,19 @@ const orderSchema = z.object({
       .trim()
       .toUpperCase()
       .regex(/^[A-Z0-9_\-]{1,20}$/, 'Invalid promo code format')
-  ).optional()
+  ).optional(),
+
+  paymentMethod: z.enum(['venmo', 'card']).optional().default('venmo')
+}).superRefine((data, ctx) => {
+  // A card request is worthless without a number to send the invoice to, so
+  // enforce it here rather than trusting the checkbox on the client.
+  if (data.paymentMethod === 'card' && !data.customer?.phone) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      path: ['customer', 'phone'],
+      message: 'A phone number is required to pay by card.'
+    });
+  }
 });
 
 export function validateOrderPayload(payload) {

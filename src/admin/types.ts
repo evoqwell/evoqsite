@@ -26,15 +26,24 @@ export type OrderStatus =
   | 'fulfilled'
   | 'cancelled';
 
+/** How the customer intends to pay. `card` means they asked to be invoiced
+ *  separately — the storefront never charges a card itself. */
+export type PaymentMethod = 'venmo' | 'card';
+
 export type Order = {
   orderNumber: string;
   status: OrderStatus;
   createdAt: string;
   promoCode?: string | null;
   venmoNote?: string;
+  paymentMethod?: PaymentMethod;
+  /** ISO timestamp the card invoice link was sent, or null if still owed. */
+  invoiceSentAt?: string | null;
   customer?: {
     name?: string;
     email?: string;
+    /** Only present on card-payment requests. */
+    phone?: string;
     address?: string;
     city?: string;
     state?: string;

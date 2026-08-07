@@ -433,18 +433,22 @@ function initCheckoutForm() {
   if (!form) return;
 
   checkoutFormValidator = createCheckoutFormValidator(form);
+  initCardPaymentOption(form);
   form.addEventListener('submit', handleCheckoutSubmit);
 }
 
 function createCheckoutFormValidator(form) {
   const submitBtn = document.getElementById('submit-order');
-  const requiredFields = Array.from(form.querySelectorAll('input[required]'));
+  // Required fields are re-read on every pass because the phone input only
+  // becomes required once the card-payment box is checked.
+  const getRequiredFields = () => Array.from(form.querySelectorAll('input[required]'));
   const touchedFields = new WeakSet();
 
   const validate = ({ revealErrors = false, focusInvalid = false } = {}) => {
     let allValid = true;
     let firstInvalidField = null;
     const fieldStatuses = [];
+    const requiredFields = getRequiredFields();
 
     requiredFields.forEach((field) => {
       if (revealErrors) {
@@ -499,7 +503,9 @@ function createCheckoutFormValidator(form) {
     return allValid;
   };
 
-  requiredFields.forEach((field) => {
+  // Listeners are bound to every input in the form, not just the ones required
+  // right now, so the phone field behaves correctly the moment it turns on.
+  Array.from(form.querySelectorAll('input')).forEach((field) => {
     // Validate on input (real-time)
     field.addEventListener('input', () => {
       validate();
@@ -528,20 +534,142 @@ function createCheckoutFormValidator(form) {
   return {
     validate,
     reset() {
-      requiredFields.forEach((field) => {
+      Array.from(form.querySelectorAll('input')).forEach((field) => {
         touchedFields.delete(field);
         field.classList.remove('is-invalid');
       });
       validate();
     },
     getFieldStatuses() {
-      return requiredFields.map(field => ({
+      return getRequiredFields().map(field => ({
         name: field.name || field.id,
         value: field.value.trim(),
         valid: field.value.trim().length > 0 && field.checkValidity()
       }));
     }
   };
+}
+
+// --- Card payment request ---
+
+/** Format a US-style number as the customer types: (555) 123-4567. */
+function formatPhoneInput(value) {
+  const digits = String(value || '').replace(/\D/g, '').slice(0, 10);
+  if (digits.length <= 3) return digits;
+  if (digits.length <= 6) return `(${digits.slice(0, 3)}) ${digits.slice(3)}`;
+  return `(${digits.slice(0, 3)}) ${digits.slice(3, 6)}-${digits.slice(6)}`;
+}
+
+function isPayingByCard() {
+  return Boolean(document.getElementById('pay-by-card')?.checked);
+}
+
+function getPhoneDigits() {
+  return (document.getElementById('shipping-phone')?.value || '').replace(/\D/g, '');
+}
+
+function initCardPaymentOption(form) {
+  const checkbox = document.getElementById('pay-by-card');
+  const phoneGroup = document.getElementById('card-phone-group');
+  const phoneInput = document.getElementById('shipping-phone');
+  if (!checkbox || !phoneGroup || !phoneInput) return;
+
+  const sync = () => {
+    const wantsCard = checkbox.checked;
+    phoneGroup.hidden = !wantsCard;
+
+    if (wantsCard) {
+      // `required` is what makes the shared validator pick this field up.
+      phoneInput.setAttribute('required', '');
+      phoneInput.setAttribute('aria-required', 'true');
+      // 10 digits rendered as (555) 123-4567.
+      phoneInput.setAttribute('pattern', '\\(\\d{3}\\) \\d{3}-\\d{4}');
+    } else {
+      phoneInput.removeAttribute('required');
+      phoneInput.removeAttribute('aria-required');
+      phoneInput.removeAttribute('pattern');
+      phoneInput.value = '';
+      phoneInput.classList.remove('is-invalid');
+    }
+
+    checkoutFormValidator?.validate();
+  };
+
+  checkbox.addEventListener('change', () => {
+    sync();
+    if (checkbox.checked) phoneInput.focus();
+  });
+
+  phoneInput.addEventListener('input', () => {
+    const cursorAtEnd = phoneInput.selectionStart === phoneInput.value.length;
+    phoneInput.value = formatPhoneInput(phoneInput.value);
+    if (cursorAtEnd) {
+      const end = phoneInput.value.length;
+      phoneInput.setSelectionRange(end, end);
+    }
+  });
+
+  // Establish the initial state (handles browser-restored checkbox values).
+  sync();
+
+  form.addEventListener('reset', () => {
+    // The native reset runs after this handler, so defer the resync.
+    setTimeout(sync, 0);
+  });
+}
+
+/**
+ * Ask the customer to confirm the number their invoice link will be texted to.
+ * Resolves true to proceed, false if they want to correct it.
+ */
+function confirmCardPhone() {
+  return new Promise((resolve) => {
+    const modalEl = document.getElementById('cardPhoneConfirmModal');
+    const valueEl = document.getElementById('card-phone-confirm-value');
+    const phoneInput = document.getElementById('shipping-phone');
+
+    // Without the modal markup, fall back to letting the order through rather
+    // than trapping the customer.
+    if (!modalEl || !valueEl || typeof bootstrap === 'undefined') {
+      resolve(true);
+      return;
+    }
+
+    valueEl.textContent = phoneInput?.value?.trim() || '';
+
+    const modal = new bootstrap.Modal(modalEl);
+
+    // Clone the buttons to drop listeners from any previous attempt.
+    const confirmBtn = document.getElementById('card-phone-confirm');
+    const editBtn = document.getElementById('card-phone-edit');
+    if (!confirmBtn || !editBtn) {
+      resolve(true);
+      return;
+    }
+    const freshConfirm = confirmBtn.cloneNode(true);
+    const freshEdit = editBtn.cloneNode(true);
+    confirmBtn.parentNode.replaceChild(freshConfirm, confirmBtn);
+    editBtn.parentNode.replaceChild(freshEdit, editBtn);
+
+    let settled = false;
+    const finish = (result) => {
+      if (settled) return;
+      settled = true;
+      modal.hide();
+      if (!result) {
+        phoneInput?.focus();
+        phoneInput?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      }
+      resolve(result);
+    };
+
+    freshConfirm.addEventListener('click', () => finish(true));
+    freshEdit.addEventListener('click', () => finish(false));
+    // Dismissing any other way counts as "let me fix it".
+    modalEl.addEventListener('hidden.bs.modal', () => finish(false), { once: true });
+
+    modal.show();
+  });
 }
 
 async function handleCheckoutSubmit(event) {
@@ -591,6 +719,22 @@ async function handleCheckoutSubmit(event) {
     }
   }
 
+  // Card payers confirm their number before anything is sent — a wrong digit
+  // means the invoice never arrives.
+  const payByCard = isPayingByCard();
+  const phoneDigits = payByCard ? getPhoneDigits() : '';
+
+  if (payByCard) {
+    if (phoneDigits.length < 10) {
+      const phoneInput = document.getElementById('shipping-phone');
+      phoneInput?.classList.add('is-invalid');
+      phoneInput?.focus();
+      return;
+    }
+    const confirmed = await confirmCardPhone();
+    if (!confirmed) return;
+  }
+
   const submitBtn = document.getElementById('submit-order');
   const responseDiv = document.getElementById('checkout-response');
 
@@ -613,12 +757,17 @@ async function handleCheckoutSubmit(event) {
     zip: form.querySelector('#shipping-zip')?.value.trim()
   };
 
+  if (payByCard) {
+    customer.phone = phoneDigits;
+  }
+
   const payload = {
     items: cart.map((item) => ({
       productId: item.id,
       quantity: item.quantity
     })),
-    customer
+    customer,
+    paymentMethod: payByCard ? 'card' : 'venmo'
   };
 
   if (appliedPromos.length > 0) {
@@ -800,6 +949,34 @@ function showOrderConfirmation(order, { emailError } = {}) {
   const total = Number(order.totals?.total || 0).toFixed(2);
   const safeVenmoUrl = escapeHtml(order.venmoUrl || '#');
   const venmoPayment = order.venmoPayment || null;
+  const isCardOrder = order.paymentMethod === 'card';
+  const safePhone = escapeHtml(formatPhoneInput(order.customer?.phone || ''));
+
+  // Card orders are invoiced by hand, so they get no Venmo affordance at all.
+  const paymentSectionHtml = isCardOrder
+    ? `
+    <div style="background: linear-gradient(135deg, #F5F1E9 0%, #ffffff 100%); padding: 24px; border-radius: 12px; margin-bottom: 24px; border: 2px solid #D9CDBF; box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08); text-align: center;">
+      <p style="margin: 0 0 8px 0; font-size: 1.1rem; font-weight: 600; color: #333333;">Invoice on the way</p>
+      <p style="margin: 0 0 16px 0; color: #444040; font-size: 0.92rem; line-height: 1.6;">
+        We'll text a secure card payment link to
+        ${safePhone ? `<strong style="white-space: nowrap;">${safePhone}</strong>` : 'the number you provided'}
+        within one business day.
+      </p>
+      <p style="margin: 0; color: #6B5F52; font-size: 0.85rem; line-height: 1.6;">
+        Your order is reserved. Nothing ships until the invoice is paid. No need to send anything through Venmo.
+      </p>
+    </div>
+    `
+    : `
+    <div style="text-align: center; margin-bottom: 24px;">
+      <p style="margin-bottom: 16px; font-size: 1.1rem; font-weight: 500; color: #333333;">Complete Payment with Venmo</p>
+      <button id="venmo-pay-btn" type="button" style="display: inline-block; background: linear-gradient(135deg, #8A7D6E 0%, #6B5F52 100%); color: #F5F1E9; padding: 16px 48px; border-radius: 12px; text-decoration: none; font-weight: 700; font-size: 1.15rem; box-shadow: 0 8px 16px rgba(138, 125, 110, 0.3); transition: all 0.3s; border: none; cursor: pointer;">
+        Pay $${total} Now
+      </button>
+      <div id="venmo-guidance"></div>
+      <p style="margin-top: 12px;"><a href="${safeVenmoUrl}" target="_blank" rel="noopener noreferrer" style="color: #8A7D6E; font-size: 0.85rem; text-decoration: underline;">Or open Venmo web link directly</a></p>
+    </div>
+    `;
 
   modalContent.innerHTML = `
     <div style="text-align: center; margin-bottom: 24px;">
@@ -846,14 +1023,7 @@ function showOrderConfirmation(order, { emailError } = {}) {
       </div>
     </div>
 
-    <div style="text-align: center; margin-bottom: 24px;">
-      <p style="margin-bottom: 16px; font-size: 1.1rem; font-weight: 500; color: #333333;">Complete Payment with Venmo</p>
-      <button id="venmo-pay-btn" type="button" style="display: inline-block; background: linear-gradient(135deg, #8A7D6E 0%, #6B5F52 100%); color: #F5F1E9; padding: 16px 48px; border-radius: 12px; text-decoration: none; font-weight: 700; font-size: 1.15rem; box-shadow: 0 8px 16px rgba(138, 125, 110, 0.3); transition: all 0.3s; border: none; cursor: pointer;">
-        Pay $${total} Now
-      </button>
-      <div id="venmo-guidance"></div>
-      <p style="margin-top: 12px;"><a href="${safeVenmoUrl}" target="_blank" rel="noopener noreferrer" style="color: #8A7D6E; font-size: 0.85rem; text-decoration: underline;">Or open Venmo web link directly</a></p>
-    </div>
+    ${paymentSectionHtml}
 
     ${
       emailError
@@ -877,7 +1047,7 @@ function showOrderConfirmation(order, { emailError } = {}) {
     }
   `;
 
-  // Wire up Venmo smart payment button
+  // Wire up Venmo smart payment button (absent on card orders)
   const venmoBtn = document.getElementById('venmo-pay-btn');
   if (venmoBtn && venmoPayment) {
     venmoBtn.addEventListener('click', () => handleVenmoPayment(venmoPayment, total));
