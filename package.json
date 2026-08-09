@@ -11,6 +11,7 @@
     "typecheck": "tsc --noEmit -p tsconfig.app.json",
     "test": "vitest run",
     "test:watch": "vitest",
+    "test:server": "vitest run --root server --config vitest.config.js",
     "server": "npm --prefix server start",
     "seed": "npm --prefix server run seed"
   },

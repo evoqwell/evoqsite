@@ -10,6 +10,7 @@ import { centsToDollars } from '../utils/money.js';
 import { orderLimiter, logSecurityEvent } from '../middleware/security.js';
 import { encryptCustomerData } from '../utils/encryption.js';
 import { anonymizeIpForLog } from '../utils/ipAnonymizer.js';
+import { reserveStock, releaseStock, toStockLines } from '../utils/inventory.js';
 import { ipReputationMiddleware, emailRateLimitMiddleware } from '../utils/ipReputation.js';
 
 const router = Router();
@@ -127,21 +128,51 @@ router.post('/', orderLimiter, ipReputationMiddleware, emailRateLimitMiddleware,
       zip: payload.customer.zip
     });
 
-    const order = await Order.create({
-      orderNumber,
-      promoCode: promos.length > 0 ? promos[0].code : null,
-      promoCodes: promos.map(p => p.code),
-      venmoNote,
-      paymentMethod,
-      items: orderItems,
-      totals: {
-        subtotalCents: totals.subtotalCents,
-        discountCents: totals.discountCents,
-        shippingCents: totals.shippingCents,
-        totalCents: totals.totalCents
-      },
-      customer: encryptedCustomer
-    });
+    // The stock check above runs against a snapshot read minutes earlier, so it
+    // produces good error messages but guarantees nothing. This is the real
+    // guard: each decrement only applies if the product still has the units.
+    const stockLines = toStockLines(orderItems);
+    const reservation = await reserveStock(stockLines);
+
+    if (!reservation.ok) {
+      const contested = await Product.findOne({ sku: reservation.sku }).lean();
+      const name = contested?.name ?? productMap.get(reservation.sku)?.name ?? 'An item';
+      const available = contested?.stock ?? 0;
+
+      logSecurityEvent('ORDER_STOCK_CONFLICT', { sku: reservation.sku, available }, req);
+
+      return res.status(409).json({
+        error:
+          available > 0
+            ? `Only ${available} unit${available === 1 ? '' : 's'} of ${name} are still available. Please adjust your cart.`
+            : `${name} sold out while you were checking out.`
+      });
+    }
+
+    let order;
+    try {
+      order = await Order.create({
+        orderNumber,
+        promoCode: promos.length > 0 ? promos[0].code : null,
+        promoCodes: promos.map(p => p.code),
+        venmoNote,
+        paymentMethod,
+        items: orderItems,
+        totals: {
+          subtotalCents: totals.subtotalCents,
+          discountCents: totals.discountCents,
+          shippingCents: totals.shippingCents,
+          totalCents: totals.totalCents
+        },
+        customer: encryptedCustomer,
+        inventoryDeductedAt: new Date()
+      });
+    } catch (error) {
+      // Stock is already spent at this point — hand it back before bubbling up,
+      // or a failed write silently burns inventory.
+      await releaseStock(stockLines);
+      throw error;
+    }
 
     console.log(
       `[orders] Created ${order.orderNumber} (${order.items.length} items, total $${centsToDollars(

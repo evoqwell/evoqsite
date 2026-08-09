@@ -4,6 +4,7 @@ import { Order } from '../models/Order.js';
 import { z } from 'zod';
 import { centsToDollars } from '../utils/money.js';
 import { decryptCustomerData } from '../utils/encryption.js';
+import { reserveStock, releaseStock, toStockLines } from '../utils/inventory.js';
 
 const router = Router();
 
@@ -220,6 +221,54 @@ router.patch('/:orderNumber/status', async (req, res, next) => {
     const { status } = statusSchema.parse(req.body);
     const { orderNumber } = req.params;
 
+    // Cancelling hands the order's units back to stock. The filter on
+    // `inventoryDeductedAt` is what makes it safe to run twice: only the call
+    // that flips the field from set to null does the restock. Orders placed
+    // before inventory tracking have no such field, so they never match.
+    if (status === 'cancelled') {
+      const claimed = await Order.findOneAndUpdate(
+        { orderNumber, inventoryDeductedAt: { $ne: null } },
+        { $set: { status, inventoryDeductedAt: null } },
+        { new: true }
+      ).lean();
+
+      if (claimed) {
+        await releaseStock(toStockLines(claimed.items));
+        countsCache = null;
+        console.log(`[orders] Restocked ${claimed.items.length} line(s) from cancelled ${orderNumber}`);
+        return res.json({ orderNumber: claimed.orderNumber, status: claimed.status });
+      }
+      // Fell through: order is missing, or its stock was already released.
+      // Either way the plain status write below is the right move.
+    }
+
+    const existing = await Order.findOne({ orderNumber }).lean();
+    if (!existing) {
+      return res.status(404).json({ error: 'Order not found.' });
+    }
+
+    // Undoing a cancellation has to take the units back, and that can fail if
+    // someone bought them in the meantime. Better to refuse the status change
+    // than to quietly let stock go negative.
+    if (existing.status === 'cancelled' && status !== 'cancelled' && existing.inventoryDeductedAt == null) {
+      const reservation = await reserveStock(toStockLines(existing.items));
+
+      if (!reservation.ok) {
+        return res.status(409).json({
+          error: `Not enough stock left to reinstate this order — ${reservation.sku} has been sold since it was cancelled. Restock that product first.`
+        });
+      }
+
+      const reinstated = await Order.findOneAndUpdate(
+        { orderNumber },
+        { $set: { status, inventoryDeductedAt: new Date() } },
+        { new: true }
+      ).lean();
+
+      countsCache = null;
+      return res.json({ orderNumber: reinstated.orderNumber, status: reinstated.status });
+    }
+
     const order = await Order.findOneAndUpdate(
       { orderNumber },
       { $set: { status } },
@@ -282,6 +331,12 @@ router.delete('/:orderNumber', async (req, res, next) => {
     const result = await Order.findOneAndDelete({ orderNumber });
     if (!result) {
       return res.status(404).json({ error: 'Order not found.' });
+    }
+    // Deleting an order that still holds stock has to hand it back, or the
+    // units vanish. An already-cancelled order has a null field and is skipped.
+    if (result.inventoryDeductedAt != null) {
+      await releaseStock(toStockLines(result.items));
+      console.log(`[orders] Restocked ${result.items.length} line(s) from deleted ${orderNumber}`);
     }
     countsCache = null; // order removed — force fresh counts
     res.status(204).end();

@@ -8,11 +8,18 @@ async function seed() {
     await connectDatabase();
 
     for (const product of products) {
-      await Product.findOneAndUpdate({ sku: product.sku }, product, {
-        upsert: true,
-        new: true,
-        setDefaultsOnInsert: true
-      });
+      // Stock is live inventory once the store is running — re-seeding must not
+      // stomp it back to the placeholder. It is only applied on first insert.
+      const { stock, ...fields } = product;
+      await Product.findOneAndUpdate(
+        { sku: product.sku },
+        { $set: fields, $setOnInsert: { stock } },
+        {
+          upsert: true,
+          new: true,
+          setDefaultsOnInsert: true
+        }
+      );
     }
     console.log(`[seed] Upserted ${products.length} products.`);
 
