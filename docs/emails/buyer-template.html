@@ -6,6 +6,7 @@ Subject line (put in the Subject field, not the body):
   Order #{{order_number}} received — thank you from EVOQ
 
 All {{...}} placeholders are supplied by lib/email.js. Unused placeholders render as empty strings.
+The payment block is rendered in code so card orders never receive a Venmo button.
 -->
 <!DOCTYPE html>
 <html lang="en">
@@ -36,7 +37,7 @@ All {{...}} placeholders are supplied by lib/email.js. Unused placeholders rende
                 Thank you, {{customer_name}}.
               </h1>
               <p style="margin:0 0 28px 0;font-size:15px;line-height:1.6;color:#5c544c;">
-                We've received your order. Below is your summary — complete the Venmo payment to get it on its way.
+                We've received your order. Below is your summary and what happens next.
               </p>
 
               <!-- Order number pill -->
@@ -76,36 +77,8 @@ All {{...}} placeholders are supplied by lib/email.js. Unused placeholders rende
                 </tr>
               </table>
 
-              <!-- Payment CTA -->
-              <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="background:#f5f1e9;border-radius:10px;margin-bottom:28px;">
-                <tr>
-                  <td style="padding:24px;">
-                    <h2 style="margin:0 0 8px 0;font-size:14px;letter-spacing:0.08em;text-transform:uppercase;color:#6b5f52;font-weight:600;">
-                      Next step — send payment
-                    </h2>
-                    <p style="margin:0 0 16px 0;font-size:15px;line-height:1.6;color:#2f2a25;">
-                      Open Venmo and send <strong>{{total}}</strong> to <strong>@{{venmo_username}}</strong>.<br>
-                      <span style="color:#5c544c;font-size:14px;">Include this note so we can match it to your order:</span>
-                    </p>
-                    <table role="presentation" cellpadding="0" cellspacing="0" border="0" style="margin-bottom:20px;">
-                      <tr>
-                        <td style="background:#ffffff;border:1px solid #eee3d2;padding:10px 14px;border-radius:6px;font-family:'SFMono-Regular',Menlo,Monaco,Consolas,monospace;font-size:15px;color:#2f2a25;">
-                          {{order_number}}
-                        </td>
-                      </tr>
-                    </table>
-                    <table role="presentation" cellpadding="0" cellspacing="0" border="0">
-                      <tr>
-                        <td style="border-radius:8px;background:#6b5f52;">
-                          <a href="{{venmo_link}}" style="display:inline-block;padding:12px 24px;font-size:15px;color:#ffffff;text-decoration:none;font-weight:600;border-radius:8px;">
-                            Open in Venmo →
-                          </a>
-                        </td>
-                      </tr>
-                    </table>
-                  </td>
-                </tr>
-              </table>
+              <!-- Payment instructions (card or Venmo) -->
+              {{{payment_html}}}
 
               <!-- Fulfillment -->
               <p style="margin:0 0 16px 0;font-size:14px;line-height:1.6;color:#5c544c;">

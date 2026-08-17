@@ -956,11 +956,11 @@ function showOrderConfirmation(order, { emailError } = {}) {
   const paymentSectionHtml = isCardOrder
     ? `
     <div style="background: linear-gradient(135deg, #F5F1E9 0%, #ffffff 100%); padding: 24px; border-radius: 12px; margin-bottom: 24px; border: 2px solid #D9CDBF; box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08); text-align: center;">
-      <p style="margin: 0 0 8px 0; font-size: 1.1rem; font-weight: 600; color: #333333;">Invoice on the way</p>
+      <p style="margin: 0 0 8px 0; font-size: 1.1rem; font-weight: 600; color: #333333;">Square invoice on the way</p>
       <p style="margin: 0 0 16px 0; color: #444040; font-size: 0.92rem; line-height: 1.6;">
-        We'll text a secure card payment link to
+        Look for a text message from Square at
         ${safePhone ? `<strong style="white-space: nowrap;">${safePhone}</strong>` : 'the number you provided'}
-        within one business day.
+        with your secure invoice link. It should arrive within one business day.
       </p>
       <p style="margin: 0; color: #6B5F52; font-size: 0.85rem; line-height: 1.6;">
         Your order is reserved. Nothing ships until the invoice is paid. No need to send anything through Venmo.
