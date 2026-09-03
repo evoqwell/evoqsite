@@ -79,3 +79,8 @@ export type Promo = {
   description?: string;
   isActive?: boolean;
 };
+
+export type StorefrontSettings = {
+  cardPaymentsEnabled: boolean;
+  updatedAt?: string | null;
+};

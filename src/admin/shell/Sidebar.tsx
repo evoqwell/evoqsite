@@ -1,5 +1,5 @@
 import { NavLink, useNavigate } from 'react-router-dom';
-import { LayoutDashboard, ShoppingBag, Package, Tag, BarChart3, Receipt, Scissors, LogOut } from 'lucide-react';
+import { LayoutDashboard, ShoppingBag, Package, Tag, BarChart3, Receipt, Scissors, Settings, LogOut } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -14,6 +14,7 @@ const NAV = [
   { to: '/admin/expenses', label: 'Expenses', icon: Receipt },
   { to: '/admin/drea', label: 'Drea Hair', icon: Scissors },
   { to: '/admin/analytics', label: 'Analytics', icon: BarChart3 },
+  { to: '/admin/settings', label: 'Settings', icon: Settings },
 ];
 
 type Props = {

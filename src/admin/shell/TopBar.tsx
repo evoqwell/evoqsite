@@ -8,6 +8,7 @@ const TITLES: Record<string, string> = {
   products: 'Products',
   promos: 'Promos',
   analytics: 'Analytics',
+  settings: 'Settings',
 };
 
 type Props = {

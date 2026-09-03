@@ -1848,6 +1848,10 @@ textarea.form-control {
   border: 1px solid var(--sand);
 }
 
+.card-payment-section[hidden] {
+  display: none;
+}
+
 .card-payment-check {
   display: flex;
   align-items: flex-start;

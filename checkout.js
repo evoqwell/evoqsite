@@ -8,6 +8,7 @@ let shippingRate = 10;
 let checkoutFormValidator = null;
 let bacWaterProducts = []; // All BAC water variants in catalog
 let bacWaterProduct = null; // Default variant to offer in the reminder modal (cheapest)
+let cardPaymentsEnabled = false;
 
 document.addEventListener('DOMContentLoaded', async () => {
   await hydrateCheckoutSettings();
@@ -23,6 +24,7 @@ async function hydrateCheckoutSettings() {
     if (meta && typeof meta.shippingFlatRate === 'number') {
       shippingRate = meta.shippingFlatRate;
     }
+    syncCardPaymentAvailability(meta?.cardPaymentsEnabled !== false);
 
     // Collect all BAC water variants (any product whose name contains "bac").
     // Any variant in the cart satisfies the reconstitution prompt.
@@ -40,6 +42,7 @@ async function hydrateCheckoutSettings() {
       console.warn('BAC water product not found in catalog');
     }
   } catch (error) {
+    syncCardPaymentAvailability(false);
     console.warn('Failed to load storefront settings. Falling back to default shipping.', error);
   }
 }
@@ -561,11 +564,36 @@ function formatPhoneInput(value) {
 }
 
 function isPayingByCard() {
-  return Boolean(document.getElementById('pay-by-card')?.checked);
+  return cardPaymentsEnabled && Boolean(document.getElementById('pay-by-card')?.checked);
 }
 
 function getPhoneDigits() {
   return (document.getElementById('shipping-phone')?.value || '').replace(/\D/g, '');
+}
+
+function syncCardPaymentAvailability(enabled) {
+  cardPaymentsEnabled = Boolean(enabled);
+
+  const section = document.getElementById('card-payment-section');
+  const note = document.getElementById('card-payment-note');
+  const checkbox = document.getElementById('pay-by-card');
+  const phoneGroup = document.getElementById('card-phone-group');
+  const phoneInput = document.getElementById('shipping-phone');
+
+  if (section) section.hidden = !cardPaymentsEnabled;
+  if (note) note.hidden = !cardPaymentsEnabled;
+
+  if (!cardPaymentsEnabled) {
+    if (checkbox) checkbox.checked = false;
+    if (phoneGroup) phoneGroup.hidden = true;
+    if (phoneInput) {
+      phoneInput.removeAttribute('required');
+      phoneInput.removeAttribute('aria-required');
+      phoneInput.removeAttribute('pattern');
+      phoneInput.value = '';
+      phoneInput.classList.remove('is-invalid');
+    }
+  }
 }
 
 function initCardPaymentOption(form) {
@@ -575,7 +603,7 @@ function initCardPaymentOption(form) {
   if (!checkbox || !phoneGroup || !phoneInput) return;
 
   const sync = () => {
-    const wantsCard = checkbox.checked;
+    const wantsCard = cardPaymentsEnabled && checkbox.checked;
     phoneGroup.hidden = !wantsCard;
 
     if (wantsCard) {

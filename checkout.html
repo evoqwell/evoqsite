@@ -166,7 +166,7 @@
                             </div>
                         </div>
 
-                        <div class="form-group card-payment-section">
+                        <div class="form-group card-payment-section" id="card-payment-section" hidden>
                             <div class="card-payment-check">
                                 <input type="checkbox" id="pay-by-card" name="payByCard" class="card-payment-checkbox">
                                 <label for="pay-by-card">
@@ -199,7 +199,7 @@
                         <button type="submit" class="btn-primary" id="submit-order">Place Order</button>
 
                         <div class="payment-note">
-                            <p>After submitting your order, you will receive payment instructions via email. We accept payment via Venmo, or a card invoice if you selected that option above.</p>
+                            <p>After submitting your order, you will receive payment instructions via email. We accept payment via Venmo<span id="card-payment-note" hidden>, or a card invoice if you selected that option above</span>.</p>
                             <p><strong>Heads up:</strong> If you do not receive a confirmation email, kindly check your junk or spam folder.</p>
                         </div>
                     </form>

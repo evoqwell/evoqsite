@@ -12,6 +12,7 @@ import { encryptCustomerData } from '../utils/encryption.js';
 import { anonymizeIpForLog } from '../utils/ipAnonymizer.js';
 import { reserveStock, releaseStock, toStockLines } from '../utils/inventory.js';
 import { ipReputationMiddleware, emailRateLimitMiddleware } from '../utils/ipReputation.js';
+import { isPaymentMethodAvailable } from '../services/storefrontSettings.js';
 
 const router = Router();
 
@@ -26,6 +27,13 @@ router.post('/', orderLimiter, ipReputationMiddleware, emailRateLimitMiddleware,
     }, req);
 
     const payload = validateOrderPayload(req.body);
+    const paymentMethod = payload.paymentMethod ?? 'venmo';
+
+    if (!(await isPaymentMethodAvailable(paymentMethod))) {
+      return res.status(409).json({
+        error: 'Credit card payment is temporarily unavailable. Please choose Venmo.'
+      });
+    }
 
     const quantityBySku = new Map();
     for (const item of payload.items) {
@@ -97,7 +105,6 @@ router.post('/', orderLimiter, ipReputationMiddleware, emailRateLimitMiddleware,
 
     const orderNumber = generateOrderNumber();
     const venmoNote = orderNumber;
-    const paymentMethod = payload.paymentMethod ?? 'venmo';
     // Card requests get invoiced manually, so no Venmo affordance is built or
     // returned for them.
     const venmoPayment =

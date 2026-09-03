@@ -27,6 +27,7 @@ import adminAnalyticsRouter from './routes/adminAnalytics.js';
 import adminDashboardRouter from './routes/adminDashboard.js';
 import adminExpensesRouter from './routes/adminExpenses.js';
 import adminDreaRouter from './routes/adminDrea.js';
+import adminSettingsRouter from './routes/adminSettings.js';
 
 const app = express();
 
@@ -97,6 +98,7 @@ app.use('/api/admin/analytics', adminAnalyticsRouter);
 app.use('/api/admin/dashboard', adminDashboardRouter);
 app.use('/api/admin/expenses', adminExpensesRouter);
 app.use('/api/admin/drea', adminDreaRouter);
+app.use('/api/admin/settings', adminSettingsRouter);
 
 app.use((err, req, res, next) => {
   console.error('[api] Error:', err);

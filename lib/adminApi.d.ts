@@ -63,6 +63,12 @@ export function createAdminExpense(
 ): Promise<unknown>;
 export function deleteAdminExpense(token: string | null, id: string): Promise<unknown>;
 
+export function fetchAdminSettings(token: string | null): Promise<unknown>;
+export function updateAdminSettings(
+  token: string | null,
+  payload: { cardPaymentsEnabled: boolean },
+): Promise<unknown>;
+
 export function fetchAdminDreaEntries(
   token: string | null,
   params?: {
