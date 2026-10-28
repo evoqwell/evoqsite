@@ -60,3 +60,33 @@ describe('useOrders optimistic raw cache helpers', () => {
     expect(next?.hasMore).toBe(false);
   });
 });
+
+describe('normalizeOrderDetail promo codes', () => {
+  const base = {
+    orderNumber: 'EVQ-1',
+    status: 'pending_payment' as const,
+    createdAt: '2026-10-28T00:00:00.000Z',
+  };
+
+  it('keeps every code the API sends', () => {
+    const order = __testUtils.normalizeOrderDetail({
+      ...base,
+      promoCode: 'SAVE10',
+      promoCodes: ['SAVE10', 'FRIEND5'],
+    });
+
+    expect(order.promoCodes).toEqual(['SAVE10', 'FRIEND5']);
+  });
+
+  it('falls back to the single code from an API that predates the list', () => {
+    const order = __testUtils.normalizeOrderDetail({ ...base, promoCode: 'SAVE10' });
+
+    expect(order.promoCodes).toEqual(['SAVE10']);
+  });
+
+  it('returns an empty list when no code was used', () => {
+    const order = __testUtils.normalizeOrderDetail({ ...base, promoCode: null });
+
+    expect(order.promoCodes).toEqual([]);
+  });
+});

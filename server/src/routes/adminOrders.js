@@ -5,6 +5,7 @@ import { z } from 'zod';
 import { centsToDollars } from '../utils/money.js';
 import { decryptCustomerData } from '../utils/encryption.js';
 import { reserveStock, releaseStock, toStockLines } from '../utils/inventory.js';
+import { getOrderPromoCodes } from '../utils/promoCodes.js';
 
 const router = Router();
 
@@ -187,7 +188,10 @@ router.get('/:orderNumber', async (req, res, next) => {
     res.json({
       orderNumber: order.orderNumber,
       status: order.status,
+      // `promoCode` stays for any admin build that hasn't picked up
+      // `promoCodes` yet; Netlify and Railway deploy independently.
       promoCode: order.promoCode || null,
+      promoCodes: getOrderPromoCodes(order),
       venmoNote: order.venmoNote,
       paymentMethod: order.paymentMethod ?? 'venmo',
       invoiceSentAt: order.invoiceSentAt?.toISOString?.() ?? order.invoiceSentAt ?? null,

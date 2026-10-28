@@ -34,6 +34,25 @@ export function printPackingSlip(order: Order): boolean {
   const shippingText = formatCurrencyCents(order.totals?.shippingCents);
   const totalText = formatCurrencyCents(order.totals?.totalCents);
 
+  // Without these rows the printed line items plus shipping don't add up to
+  // the total on a discounted order.
+  const discountCents = order.totals?.discountCents ?? 0;
+  const promoCodes = order.promoCodes ?? [];
+  const discountLabel =
+    promoCodes.length > 0 ? `Discount (${promoCodes.join(', ')})` : 'Discount';
+  const discountRowsHtml =
+    discountCents > 0
+      ? `
+      <div class="summary-row">
+        <span>Subtotal</span>
+        <span>${formatCurrencyCents(order.totals?.subtotalCents)}</span>
+      </div>
+      <div class="summary-row">
+        <span>${escapeHtml(discountLabel)}</span>
+        <span>-${formatCurrencyCents(discountCents)}</span>
+      </div>`
+      : '';
+
   const packingSlipHtml = `
 <!DOCTYPE html>
 <html>
@@ -90,12 +109,13 @@ export function printPackingSlip(order: Order): boolean {
       color: #666;
     }
     .items-table th:last-child { text-align: right; }
-    .shipping-row {
-      margin-top: 16px;
+    .summary { margin-top: 16px; }
+    .summary-row {
       display: flex;
       justify-content: space-between;
       color: #666;
     }
+    .summary-row + .summary-row { margin-top: 4px; }
     .total-row {
       margin-top: 8px;
       padding-top: 12px;
@@ -164,9 +184,11 @@ export function printPackingSlip(order: Order): boolean {
         ${itemsHtml}
       </tbody>
     </table>
-    <div class="shipping-row">
-      <span>Shipping</span>
-      <span>${shippingText}</span>
+    <div class="summary">${discountRowsHtml}
+      <div class="summary-row">
+        <span>Shipping</span>
+        <span>${shippingText}</span>
+      </div>
     </div>
     <div class="total-row">
       <span>Order Total</span>

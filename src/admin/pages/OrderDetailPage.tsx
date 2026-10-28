@@ -137,7 +137,7 @@ export function OrderDetailPage() {
     customer,
     totals,
     items,
-    promoCode,
+    promoCodes = [],
     venmoNote,
     status,
     createdAt,
@@ -260,13 +260,16 @@ export function OrderDetailPage() {
                 </div>
                 {discountCents > 0 && (
                   <div className="flex items-center justify-between text-sm">
-                    <dt className="text-muted-foreground">
+                    <dt className="text-muted-foreground flex items-center flex-wrap gap-x-2 gap-y-1">
                       Discount
-                      {promoCode && (
-                        <span className="ml-2 font-mono text-xs bg-slate-100 px-1.5 py-0.5 rounded">
-                          {promoCode}
+                      {promoCodes.map((code) => (
+                        <span
+                          key={code}
+                          className="font-mono text-xs bg-slate-100 px-1.5 py-0.5 rounded"
+                        >
+                          {code}
                         </span>
-                      )}
+                      ))}
                     </dt>
                     <dd className="tabular-nums text-emerald-700">
                       -{formatCurrencyCents(discountCents)}

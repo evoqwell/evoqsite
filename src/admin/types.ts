@@ -34,7 +34,8 @@ export type Order = {
   orderNumber: string;
   status: OrderStatus;
   createdAt: string;
-  promoCode?: string | null;
+  /** Every code the customer applied; empty when none were used. */
+  promoCodes?: string[];
   venmoNote?: string;
   paymentMethod?: PaymentMethod;
   /** ISO timestamp the card invoice link was sent, or null if still owed. */

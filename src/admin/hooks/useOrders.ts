@@ -86,6 +86,7 @@ type RawOrderDetail = {
   status: OrderStatus;
   createdAt: string;
   promoCode?: string | null;
+  promoCodes?: string[];
   venmoNote?: string;
   paymentMethod?: PaymentMethod;
   invoiceSentAt?: string | null;
@@ -150,7 +151,8 @@ function normalizeOrderDetail(o: RawOrderDetail): Order {
     orderNumber: o.orderNumber,
     status: o.status,
     createdAt: o.createdAt,
-    promoCode: o.promoCode,
+    // An API deployed before `promoCodes` existed only sends the first code.
+    promoCodes: o.promoCodes ?? (o.promoCode ? [o.promoCode] : []),
     venmoNote: o.venmoNote,
     paymentMethod: o.paymentMethod ?? 'venmo',
     invoiceSentAt: o.invoiceSentAt ?? null,
@@ -411,4 +413,5 @@ export function useDeleteOrder() {
 
 export const __testUtils = {
   applyOptimisticStatusToRawList,
+  normalizeOrderDetail,
 };
